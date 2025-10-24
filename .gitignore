@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Virtualenvs
+venv/
+.venv/
+ENV/
+
+# Environment files
+.env
+.env.*
+
+# Alembic
+# Keep alembic/versions/ tracked in the repo (migrations should be committed).
+
+# Database
+*.sqlite3
+*.db
+
+# Testing / tooling caches
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+pip-wheel-metadata/
+build/
+dist/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads (user/content uploads should not be committed)
+uploads/
+
+# Logs
+*.log
+
+# Node (frontend)
+node_modules/
+
+# Misc
+*.bak
+*.swp
+*.swo
+
+# Frontend build output
+/dist/
+alembic.ini

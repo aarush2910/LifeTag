@@ -1,25 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Body ,Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
-from app.schemas.auth import (
-    FarmerCreate,
-    VetCreate,
-    ShelterCreate,
-    LoginRequest,
-    _normalize_aadhaar,
-    _normalize_phone,
-    DeleteUserRequest,
-)
-from app.models.user import Farmer, Vet, Shelter
+from app.schemas.auth import LoginRequest,FarmerCreate
+from app.schemas.common import _normalize_aadhaar, _normalize_phone
+from app.models.user import Farmer,Vet,Shelter
+from fastapi.security import OAuth2PasswordRequestForm
+from app.models.cattle import Cattle
 from app.core.security import hash_password, verify_password
 from app.services.mailer import send_email
 from app.core.config import settings
+from datetime import timedelta
 import asyncio
 
-router = APIRouter(tags=["auth"])
 
-router = APIRouter()
+router = APIRouter(tags=["auth"])  # keep auth router name; farmer-related routes live here
 
 @router.post("/signup/farmer", status_code=201)
 async def signup_farmer(payload: FarmerCreate, db: AsyncSession = Depends(get_db)):
@@ -43,8 +38,9 @@ async def signup_farmer(payload: FarmerCreate, db: AsyncSession = Depends(get_db
     <html>
       <body style="font-family: Arial, sans-serif; background-color: #f4f7fa; padding: 20px;">
         <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; padding: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-          <div style="text-align: center;">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/Cow_icon.png" alt="LifeTag Logo" width="60" />
+            <div style="text-align: center;">
+            <!-- inline CID image attached by mailer -->
+            <img src="cid:life_logo" alt="LifeTag Logo" width="60" />
             <h2 style="color: #2c7be5;">Welcome to LifeTag</h2>
             <p style="color: #444;">Empowering Farmers • Ensuring Livestock Welfare</p>
           </div>
@@ -93,48 +89,6 @@ async def signup_farmer(payload: FarmerCreate, db: AsyncSession = Depends(get_db
     return {"message": "Farmer signup successful", "user_id": new_user.fid}
 
 
-@router.post("/signup/vet", status_code=201)
-async def signup_vet(payload: VetCreate, db: AsyncSession = Depends(get_db)):
-    if await db.scalar(select(Vet).where(Vet.vemail == payload.vemail)):
-        raise HTTPException(400, "Email already registered")
-    if await db.scalar(select(Vet).where(Vet.vlicense == payload.vlicense)):
-        raise HTTPException(400, "License number already registered")
-
-    new_user = Vet(**payload.model_dump(exclude={"password"}))
-    new_user.password_hash = hash_password(payload.password)
-    db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
-
-    asyncio.create_task(send_email(
-        "Welcome to LifeTag - Veterinarian Account",
-        new_user.vemail,
-        f"Hello Dr. {new_user.vname}, your vet account has been created."
-    ))
-    return {"message": "Vet signup successful", "user_id": new_user.vid}
-
-
-@router.post("/signup/shelter", status_code=201)
-async def signup_shelter(payload: ShelterCreate, db: AsyncSession = Depends(get_db)):
-    if await db.scalar(select(Shelter).where(Shelter.semail == payload.semail)):
-        raise HTTPException(400, "Email already registered")
-    if await db.scalar(select(Shelter).where(Shelter.sregistration == payload.sregistration)):
-        raise HTTPException(400, "Registration number already exists")
-
-    new_user = Shelter(**payload.model_dump(exclude={"password"}))
-    new_user.password_hash = hash_password(payload.password)
-    db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
-
-    asyncio.create_task(send_email(
-        "Welcome to LifeTag - Shelter Account",
-        new_user.semail,
-        f"Hello {new_user.sname}, your shelter account has been created."
-    ))
-    return {"message": "Shelter signup successful", "user_id": new_user.sid}
-
-
 @router.post("/login")
 async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
     role = payload.role.lower()
@@ -175,49 +129,4 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
         "role": role
     }
 
-
-@router.delete("/delete-user", status_code=200)
-async def delete_user(payload: DeleteUserRequest, db: AsyncSession = Depends(get_db)):
-    """Delete a user by role and id.
-
-    Accepts a JSON body like {"role": "farmer", "user_id": "..."} so the
-    Swagger UI renders a single JSON object and avoids JSON-decode confusion.
-    """
-    role = payload.role.lower()
-    user_id = payload.user_id
-
-    from sqlalchemy import delete as sa_delete
-    import uuid
-
-    # convert user_id to UUID where models use UUID primary keys
-    try:
-        uid = uuid.UUID(user_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid user_id format; expected UUID string")
-
-    if role == "farmer":
-        stmt = sa_delete(Farmer).where(Farmer.fid == uid)
-    elif role == "vet":
-        stmt = sa_delete(Vet).where(Vet.vid == uid)
-    elif role == "shelter":
-        stmt = sa_delete(Shelter).where(Shelter.sid == uid)
-    else:
-        raise HTTPException(status_code=400, detail="Unknown role")
-
-    result = await db.execute(stmt)
-    # result.rowcount may be None depending on DB/driver; check using SELECT
-    await db.commit()
-
-    # verify deletion by attempting to fetch
-    if role == "farmer":
-        found = await db.scalar(select(Farmer).where(Farmer.fid == uid))
-    elif role == "vet":
-        found = await db.scalar(select(Vet).where(Vet.vid == uid))
-    else:
-        found = await db.scalar(select(Shelter).where(Shelter.sid == uid))
-
-    if found:
-        raise HTTPException(status_code=500, detail="Deletion attempted but record still exists")
-
-    return {"message": f"{role.capitalize()} deleted successfully", "user_id": user_id}
-
+ 

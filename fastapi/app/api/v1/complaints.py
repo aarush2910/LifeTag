@@ -10,7 +10,7 @@ from datetime import datetime
 import logging
 import html
 
-router = APIRouter(prefix="/complaints", tags=["complaints"])
+router = APIRouter(tags=["complaints"])
 
 @router.post("/cattle", status_code=201)
 async def create_cattle_complaint(
@@ -80,8 +80,9 @@ async def create_cattle_complaint(
 <html>
     <body style="font-family: Arial, sans-serif; background-color: #f4f7fa; padding: 20px;">
         <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; padding: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-            <div style="text-align: center;">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/Cow_icon.png" alt="LifeTag Logo" width="60" />
+                <div style="text-align: center;">
+                <!-- embedded CID image served as inline attachment by the mailer -->
+                <img src="cid:life_logo" alt="LifeTag Logo" width="60" />
                 <h2 style="color: #2c7be5;">Complaint Registered Successfully</h2>
                 <p style="color: #444;">LifeTag – Livestock Welfare & Monitoring System</p>
             </div>

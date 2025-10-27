@@ -1,6 +1,11 @@
 import hashlib
 import logging
 from passlib.hash import bcrypt_sha256
+from datetime import datetime,timedelta
+from app.core.config import settings
+from jose import jwt,JWTError
+
+
 
 try:
     import bcrypt as _bcrypt
@@ -89,3 +94,8 @@ def verify_password(plain: str, hashed: str) -> bool:
     # Unknown format
     logging.warning("Unrecognized hash format")
     return False
+
+
+#------------------------------JWT Begins-------------------------------------------------------------
+
+

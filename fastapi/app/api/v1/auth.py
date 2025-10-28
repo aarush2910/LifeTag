@@ -1,8 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Body ,Response
+from fastapi import APIRouter, Depends, HTTPException, status, Body, Response, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
-from app.schemas.auth import LoginRequest,FarmerCreate
+from app.schemas.auth import (
+    LoginRequest,
+    FarmerCreate,
+    FarmerResponse,
+    InaphLoginRequest,
+    CreatePasswordRequest,
+    InaphLoginResponse,
+)
 from app.schemas.common import _normalize_aadhaar, _normalize_phone
 from app.models.user import Farmer,Vet,Shelter
 from fastapi.security import OAuth2PasswordRequestForm
@@ -89,6 +96,47 @@ async def signup_farmer(payload: FarmerCreate, db: AsyncSession = Depends(get_db
     return {"message": "Farmer signup successful", "user_id": new_user.fid}
 
 
+
+@router.get("/farmer-info", response_model=FarmerResponse)
+async def get_farmer_info(
+    identifier: str = Query(..., description="INAPH ID, email or phone number"),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    🔍 Fetch farmer details by INAPH ID / Email / Phone
+    Used for frontend 
+    """
+    # try normalizing known identifier formats to improve matching
+    norm_aadhaar = None
+    norm_phone = None
+    try:
+        norm_aadhaar = _normalize_aadhaar(identifier)
+    except Exception:
+        norm_aadhaar = None
+    try:
+        norm_phone = _normalize_phone(identifier)
+    except Exception:
+        norm_phone = None
+
+    # lowercase email for consistent matching
+    email_candidate = identifier.lower()
+
+    farmer = await db.scalar(
+        select(Farmer).where(
+            (Farmer.inaph_id == identifier) |
+            (Farmer.femail == email_candidate) |
+            (Farmer.fphone == norm_phone) |
+            (Farmer.faadhar == norm_aadhaar)
+        )
+    )
+
+    if not farmer:
+        raise HTTPException(status_code=404, detail="Farmer not found")
+
+    return farmer
+
+
+#login
 @router.post("/login")
 async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
     role = payload.role.lower()
@@ -128,5 +176,78 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
         "user_name": user_name,
         "role": role
     }
+
+
+@router.post("/inaph/login", response_model=InaphLoginResponse)
+async def inaph_login(payload: InaphLoginRequest, db: AsyncSession = Depends(get_db)):
+    """Login/create-password flow using INAPH ID.
+
+    Flow:
+    - POST /inaph/login with { inaph_id }
+      - If farmer not found -> 404
+      - If farmer exists but has no password_hash -> returns needs_password message (password required)
+      - If farmer exists and has password_hash -> requires password in request and verifies it
+    - To set a password, call POST /inaph/create-password with { inaph_id, new_password }
+    """
+    farmer = await db.scalar(select(Farmer).where(Farmer.inaph_id == payload.inaph_id))
+    if not farmer:
+        raise HTTPException(status_code=404, detail="Farmer not found")
+
+    # No password set yet -> tell frontend to show create-password UI
+    if not farmer.password_hash:
+        # Return a clear message so frontend can show the create-password screen.
+        return InaphLoginResponse(
+            message="Password required",
+            user_id=str(farmer.fid),
+            user_name=farmer.fname,
+            role="farmer",
+        )
+
+    # Password exists -> require password in request
+    if not payload.password:
+        raise HTTPException(status_code=400, detail="Password required for INAPH login")
+
+    if not verify_password(payload.password, farmer.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    return InaphLoginResponse(
+        message="Login successful",
+        user_id=str(farmer.fid),
+        user_name=farmer.fname,
+        role="farmer",
+    )
+
+
+
+# check password route 
+@router.get("/inaph/check-password")
+async def check_inaph_password(
+    inaph_id: str = Query(..., description="INAPH ID to check"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Check if a farmer already has a password for their INAPH account."""
+    farmer = await db.scalar(select(Farmer).where(Farmer.inaph_id == inaph_id))
+    if not farmer:
+        raise HTTPException(status_code=404, detail="Farmer not found")
+
+    return {"exists": bool(farmer.password_hash)}
+
+
+#create-password
+@router.post("/inaph/create-password")
+async def inaph_create_password(payload: CreatePasswordRequest, db: AsyncSession = Depends(get_db)):
+    """Set a new password for a farmer who signed up via INAPH and doesn't have a password yet."""
+    farmer = await db.scalar(select(Farmer).where(Farmer.inaph_id == payload.inaph_id))
+    if not farmer:
+        raise HTTPException(status_code=404, detail="Farmer not found")
+    if farmer.password_hash:
+        raise HTTPException(status_code=400, detail="Password already set for this account")
+
+    farmer.password_hash = hash_password(payload.new_password)
+    db.add(farmer)
+    await db.commit()
+    await db.refresh(farmer)
+
+    return {"message": "Password created successfully", "user_id": str(farmer.fid)}
 
  

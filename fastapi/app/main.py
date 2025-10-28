@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.session import engine
 from app.db.base import Base
-from app.api.v1 import auth, complaints, vet, shelter
+from app.api.v1 import auth, complaints, vet, shelter, cattles
 from starlette.staticfiles import StaticFiles
 
 app = FastAPI(title="LifeTag API")
@@ -22,6 +22,7 @@ app.include_router(auth.router, prefix="/api/auth")
 app.include_router(vet.router, prefix="/api/auth")
 app.include_router(shelter.router, prefix="/api/auth")
 app.include_router(complaints.router, prefix="/api/complaints")
+app.include_router(cattles.router, prefix="/api/cattles")
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")

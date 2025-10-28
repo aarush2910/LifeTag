@@ -29,4 +29,11 @@ class Cattle(Base):
     owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("farmers.fid"), nullable=False)
     farmer = relationship("Farmer", backref="cattles")
 
+    # Additional fields requested
+    weight: Mapped[float] = mapped_column(Float, nullable=True)
+    health_condition: Mapped[str] = mapped_column(String(100), nullable=True)
+    purchased_date: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    source: Mapped[str] = mapped_column(String(100), nullable=True)
+    photo_url: Mapped[str] = mapped_column(String(255), nullable=True)
+
 

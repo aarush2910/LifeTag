@@ -19,15 +19,19 @@ class Farmer(Base):
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+    registration_date: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
     fname: Mapped[str] = mapped_column(String(35), nullable=False)
     faadhar: Mapped[str] = mapped_column(String(20), nullable=False, unique=True)
     fphone: Mapped[str] = mapped_column(String(13), nullable=False)
     femail: Mapped[str] = mapped_column(String(100), nullable=False, unique=True) 
     faddress: Mapped[str] = mapped_column(String(100), nullable=False)
+    district: Mapped[str] = mapped_column(String(100), nullable=True)
+    state: Mapped[str] = mapped_column(String(100), nullable=True)
     farmname: Mapped[str] = mapped_column(String(50), nullable=False)
     farmtype: Mapped[str] = mapped_column(String(10), nullable=False)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    inaph_id: Mapped[str] = mapped_column(String(30), unique=True, nullable=True)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=True)
 
 # --- 3. Vet Model ---
 class Vet(Base):

@@ -9,7 +9,8 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
     DEBUG: bool = True
     SECRET_KEY: str
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 4
+    ALGORITHM:str
 
     
     DB_USER: str
@@ -38,7 +39,8 @@ class Settings(BaseSettings):
 
    
     model_config = SettingsConfigDict(
-        env_file=".env",
+
+        env_file="../.env",
         env_file_encoding="utf-8",
         extra="ignore"
     )

@@ -38,6 +38,8 @@ async def startup_event():
     os.makedirs(settings.UPLOAD_FOLDER, exist_ok=True)
     os.makedirs(STATIC_DIR, exist_ok=True)
     os.makedirs(STATIC_DIR / "images", exist_ok=True)
+    os.makedirs(STATIC_DIR, exist_ok=True)
+    os.makedirs(STATIC_DIR / "images", exist_ok=True)
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)

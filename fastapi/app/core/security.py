@@ -1,8 +1,6 @@
 import hashlib
 import logging
 from passlib.hash import bcrypt_sha256
-from datetime import datetime,timedelta
-from app.core.config import settings
 from jose import jwt,JWTError
 
 

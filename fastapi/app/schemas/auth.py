@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, field_validator, Field, ConfigDict
+from pydantic import BaseModel, EmailStr
 from typing import Optional , List
 from datetime import datetime
 from uuid import UUID
@@ -52,6 +52,7 @@ class InaphLoginResponse(BaseModel):
     user_id: Optional[UUID] = None
     user_name: Optional[str] = None
     role: Optional[str] = "farmer"
+    faadhar: Optional[str] = None  # Aadhaar added for dashboard redirect
 
     class Config:
         orm_mode = True

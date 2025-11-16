@@ -1,34 +1,33 @@
-from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.utils.file import allowed_file, save_upload_file
 from app.schemas.complaint import CattleComplaintCreate, CattleComplaintRead
 from app.models.complaint import CattleComplaint
-from app.services.mailer import send_email
-import asyncio
+from app.tasks.email_tasks import schedule_cattle_complaint_email
 from datetime import datetime
 import logging
-import html
 
 router = APIRouter(tags=["complaints"])
 
 @router.post("/cattle", status_code=201)
 async def create_cattle_complaint(
-        reporter_name: str = Form(...),
-        reporter_phone: str = Form(...),
-        reporter_email: str | None = Form(None),
-        reporter_location: str = Form(...),
-        cattle_count: int = Form(...),
-        cattle_type: str = Form(...),
-        cattle_condition: str = Form(...),
-        description: str | None = Form(None),
-        spotted_date: str | None = Form(None),
-        exact_location: str = Form(...),
-        gps_latitude: float | None = Form(None),
-        gps_longitude: float | None = Form(None),
-        nearest_landmark: str | None = Form(None),
-        photo: UploadFile | None = File(None),
-        db: AsyncSession = Depends(get_db)
+    background_tasks: BackgroundTasks,
+    reporter_name: str = Form(...),
+    reporter_phone: str = Form(...),
+    reporter_email: str | None = Form(None),
+    reporter_location: str = Form(...),
+    cattle_count: int = Form(...),
+    cattle_type: str = Form(...),
+    cattle_condition: str = Form(...),
+    description: str | None = Form(None),
+    spotted_date: str | None = Form(None),
+    exact_location: str = Form(...),
+    gps_latitude: float | None = Form(None),
+    gps_longitude: float | None = Form(None),
+    nearest_landmark: str | None = Form(None),
+    photo: UploadFile | None = File(None),
+    db: AsyncSession = Depends(get_db)
 ):
         # handle photo
         photo_path = None
@@ -69,69 +68,12 @@ async def create_cattle_complaint(
         await db.commit()
         await db.refresh(new)
 
-        # send email async (fire-and-forget). Use the created instance `new` and escape user input.
+        # schedule complaint notification email using FastAPI BackgroundTasks
         try:
-                if new.reporter_email:
-                        # escape user-provided fields to avoid HTML injection in the email body
-                        safe_name = html.escape(new.reporter_name or "Reporter")
-                        safe_complaint_id = html.escape(str(new.complaint_id))
-                        html_content = f"""
-<!DOCTYPE html>
-<html>
-    <body style="font-family: Arial, sans-serif; background-color: #f4f7fa; padding: 20px;">
-        <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; padding: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                <div style="text-align: center;">
-                <!-- embedded CID image served as inline attachment by the mailer -->
-                <img src="cid:life_logo" alt="LifeTag Logo" width="60" />
-                <h2 style="color: #2c7be5;">Complaint Registered Successfully</h2>
-                <p style="color: #444;">LifeTag – Livestock Welfare & Monitoring System</p>
-            </div>
-            <hr style="margin: 20px 0;">
-
-            <p>Dear <b>{safe_name}</b>,</p>
-
-            <p>Thank you for reaching out to <b>LifeTag</b>. Your cattle-related complaint has been successfully registered in our system.</p>
-
-            <p><b>Complaint Details:</b></p>
-            <ul>
-                <li><b>Complaint ID:</b> {safe_complaint_id}</li>
-                <li><b>Status:</b> Open (Under Review)</li>
-                <li><b>Category:</b> Livestock Complaint / Abandoned Animal Report</li>
-            </ul>
-
-            <p>Our verification team has been notified and will initiate the necessary actions in coordination with nearby shelters and authorities. You can track the progress of your complaint by logging into your LifeTag account or visiting the complaint tracking portal.</p>
-
-            <p style="margin-top: 20px;">Track your complaint at:<br>
-                <a href="https://lifetag.in/complaint-status/{safe_complaint_id}" 
-                style="color: #2c7be5; text-decoration: none;">https://lifetag.in/complaint-status/{safe_complaint_id}</a>
-            </p>
-
-            <p>If any additional information is required, our team will contact you at your registered email or phone number.</p>
-
-            <p style="margin-top: 30px;">Thank you for contributing to animal welfare.<br>
-            <b>Team LifeTag</b><br>
-            Department of Digital Livestock Management<br>
-            Ministry of Animal Husbandry & Dairying (Prototype)</p>
-
-            <hr style="margin: 30px 0;">
-            <p style="font-size: 12px; color: #888; text-align: center;">
-                This is an auto-generated email. Please do not reply.<br>
-                © 2025 LifeTag. All Rights Reserved.
-            </p>
-        </div>
-    </body>
-</html>
-"""
-
-                        asyncio.create_task(send_email(
-                                "LifeTag – Cattle Complaint Registered Successfully",
-                                new.reporter_email,
-                                html_content,
-                                True
-                        ))
-
+            if new.reporter_email:
+                schedule_cattle_complaint_email(background_tasks, new)
         except Exception:
-                logging.exception("Failed to schedule/send complaint notification email")
+            logging.exception("Failed to schedule/send complaint notification email")
 
         return {
                 "message": "Cattle complaint registered successfully",
@@ -174,6 +116,8 @@ async def list_cattle_complaints(status: str | None = None, page: int = 1, per_p
         })
     return {"complaints": res, "total": total, "page": page}
 
+
+
 @router.get("/cattle/{complaint_id}")
 async def get_cattle_complaint(complaint_id: str, db: AsyncSession = Depends(get_db)):
     from sqlalchemy import select
@@ -208,6 +152,8 @@ async def get_cattle_complaint(complaint_id: str, db: AsyncSession = Depends(get
         "created_at": c.created_at.isoformat(),
         "updated_at": c.updated_at.isoformat()
     }
+
+
 
 @router.put("/cattle/{complaint_id}/status")
 async def update_complaint_status(complaint_id: str, new_status: str, db: AsyncSession = Depends(get_db)):

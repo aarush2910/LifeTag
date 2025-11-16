@@ -33,6 +33,10 @@ class Farmer(Base):
     inaph_id: Mapped[str] = mapped_column(String(30), unique=True, nullable=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=True)
 
+
+
+
+
 # --- 3. Vet Model ---
 class Vet(Base):
     __tablename__ = "vets"
@@ -53,7 +57,14 @@ class Vet(Base):
     vlicense: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
     vclinic: Mapped[str] = mapped_column(String(100), nullable=False)
     vaddress: Mapped[str] = mapped_column(String(200), nullable=False)
+    # Qualifications
+    qualification: Mapped[str] = mapped_column(String(50), nullable=True)
+    specialization: Mapped[str] = mapped_column(String(100), nullable=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+
+
+
+
 
 # --- 4. Shelter Model ---
 class Shelter(Base):

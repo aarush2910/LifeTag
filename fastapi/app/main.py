@@ -7,6 +7,9 @@ from app.db.session import engine
 from app.db.base import Base
 from app.api.v1 import auth, complaints, vet, shelter, cattles
 from starlette.staticfiles import StaticFiles
+from app.api.v1.vet_health import router as vet_health_router
+from app.api.v1.vet_vactination import router as vet_vactination_router
+
 
 app = FastAPI(title="LifeTag API")
 
@@ -20,9 +23,12 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix="/api/auth")
 app.include_router(vet.router, prefix="/api/auth")
+app.include_router(vet_health_router, prefix="/api/vet/health-record")
+app.include_router(vet_vactination_router, prefix="/api/vaccination-events")
 app.include_router(shelter.router, prefix="/api/auth")
 app.include_router(complaints.router, prefix="/api/complaints")
 app.include_router(cattles.router, prefix="/api/cattles")
+
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -30,6 +36,8 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 @app.on_event("startup")
 async def startup_event():
     os.makedirs(settings.UPLOAD_FOLDER, exist_ok=True)
+    os.makedirs(STATIC_DIR, exist_ok=True)
+    os.makedirs(STATIC_DIR / "images", exist_ok=True)
     os.makedirs(STATIC_DIR, exist_ok=True)
     os.makedirs(STATIC_DIR / "images", exist_ok=True)
     try:

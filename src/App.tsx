@@ -6,14 +6,19 @@ import Signup from "./Page/Signup"
 import Login from "./Page/Login"
 import Forget from "./Page/Forget"
 import Contact from "./Page/Contact"
-import Dashboard from "./Page/Dashboard/Dashboard"
+import Farmer_Dashboard from "./Page/Dashboard/Farmer_Dashboard"
+import Vet_Dashboard from "./Page/Dashboard/Vet_Dashboard"
 import { ProtectedRoute, PublicOnlyRoute } from "./components/route-guards"
 import Account_info from "./Page/Logics/Account_info"
 import Dialog from "./Page/Dialog"
-import Add_new_cattle from "./Page/Logics/Add_new_cattle"
 import InaphPage from "./Page/InaphPage"
 import InaphLogin from "./Page/InaphLogin"
+import Add_new_cattle from "./Page/Logics/Add_new_cattle"
 import View_cattle_list from "./Page/Logics/View_cattle_list"
+import Appointment_info from "./Page/Logics/Appointment_info"
+import Ownership_transfer from "./Page/Logics/Ownership_transfer"
+import Retirement_request from "./Page/Logics/Retirement_request"
+
 
 
 const App = () => {
@@ -21,21 +26,26 @@ const App = () => {
     <ErrorBoundary>
       <ScrollToTop />
       <Routes>
-          <Route path="/" element={<Home/>}/>
-        <Route element={<PublicOnlyRoute/>}>
-          <Route path="/signup" element={<Signup/>}/>
-          <Route path="/InaphPage" element={<InaphPage/>}/>
-          <Route path="/InaphLogin" element={<InaphLogin/>}/>
-          <Route path="/login" element={<Login/>}/>
-          <Route path="/forget" element={<Forget/>}/>
-          <Route path="/dialog" element={<Dialog/>}/>
+        <Route path="/" element={<Home />} />
+        <Route element={<PublicOnlyRoute />}>
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/InaphPage" element={<InaphPage />} />
+          <Route path="/InaphLogin" element={<InaphLogin />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/forget" element={<Forget />} />
+          <Route path="/dialog" element={<Dialog />} />
         </Route>
-        <Route path="/Contact" element={<Contact/>}/>
-        <Route element={<ProtectedRoute/>}>
-          <Route path="/dashboard" element={<Dashboard/>}/>
-          <Route path="/account-info" element={<Account_info/>}/>
-          <Route path="/add_new_cattle" element={<Add_new_cattle/>}/>
-          <Route path="/view-cattle-list" element={<View_cattle_list/>}/>
+        <Route path="/Contact" element={<Contact />} />
+        <Route path="/vet_dashboard" element={<Vet_Dashboard/>} />
+        <Route path="/vet_dashboard/:nested" element={<Vet_Dashboard/>} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard" element={<Farmer_Dashboard />} />
+          <Route path="/account-info" element={<Account_info />} />
+          <Route path="/add_new_cattle" element={<Add_new_cattle />} />
+          <Route path="/view_cattle_list" element={<View_cattle_list />} />
+          <Route path="/appointment_info" element={<Appointment_info />} />
+          <Route path="/ownership_transfer" element={<Ownership_transfer />} />
+          <Route path="/retirement_request" element={<Retirement_request />} />
         </Route>
       </Routes>
     </ErrorBoundary>

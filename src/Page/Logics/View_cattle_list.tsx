@@ -3,10 +3,11 @@ import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "../../components/ui/sidebar";
+} from "..//../components/ui/sidebar";
 import { AppSidebar } from "../../components/AppSidebar";
-import UserMenu from "../../components/user-menu";
+import UserMenu from "../..//components/user-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { items } from "../../menudata/SidebarMenuItem";
 
 export default function CattleViewList() {
   const cattleData = [
@@ -76,7 +77,7 @@ export default function CattleViewList() {
   return (
     <div className="w-full">
       <SidebarProvider>
-        <AppSidebar />
+        <AppSidebar items={items} />
         <SidebarInset>
           {/* Header */}
           <motion.header

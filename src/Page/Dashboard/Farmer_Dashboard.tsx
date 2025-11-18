@@ -8,6 +8,8 @@ import {
 } from "../../components/ui/sidebar";
 import { AppSidebar } from "../../components/AppSidebar";
 import UserMenu from "../../components/user-menu";
+import { items } from "../../menudata/SidebarMenuItem";
+
 
 type UserType = {
   user_name: string;
@@ -73,7 +75,7 @@ export default function Dashboard() {
   return (
     <div className="w-full">
       <SidebarProvider>
-        <AppSidebar />
+        <AppSidebar items={items}/>
         <SidebarInset>
           {/* Header */}
           <motion.header

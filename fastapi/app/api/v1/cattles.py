@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Request 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.models.cattle import Cattle
@@ -10,6 +11,69 @@ import uuid
 from app.schemas.cattle import AddCattleResponse
 
 router = APIRouter(tags=["cattles"])
+
+
+# --- Cattle cards for frontend ---
+@router.get("/view-cattles")
+async def cattle_cards(limit: int = 20, owner_id: str | None = None, db: AsyncSession = Depends(get_db)):
+    """Return a list of cattle in a compact card-friendly shape for the frontend.
+
+    - `limit`: maximum number of cards to return.
+    - `owner_id`: optional owner UUID (string) to filter by owner.
+    """
+    try:
+        stmt = select(Cattle)
+        if owner_id:
+            try:
+                owner_uuid = uuid.UUID(owner_id)
+                stmt = stmt.filter(Cattle.owner_id == owner_uuid)
+            except Exception:
+                raise HTTPException(status_code=400, detail="owner_id must be a valid UUID string")
+
+        stmt = stmt.limit(limit)
+        result = await db.execute(stmt)
+        rows = result.scalars().all()
+
+        cards = []
+        for c in rows:
+            # display name: prefer explicit cattle_name, then local id, then inaph tag, otherwise CID short
+            display_name = getattr(c, "cattle_name", None) or c.local_cattle_id or c.inaph_tag_id or (str(c.cid)[:8])
+
+            dob_str = None
+            try:
+                if getattr(c, "dob", None):
+                    dob_str = c.dob.strftime("%d %b %Y")
+            except Exception:
+                dob_str = None
+
+            health = c.health_condition or "Unknown"
+
+            features = []
+            if getattr(c, "weight", None):
+                features.append(f"Weight: {c.weight} kg")
+            if getattr(c, "source", None):
+                features.append(str(c.source))
+            if c.breed:
+                features.append(str(c.breed))
+
+            # Use `cattle_name` as the single display name. Do not return a separate duplicate field.
+            cards.append({
+                "name": getattr(c, "cattle_name", None) or display_name,
+                "breed": c.breed,
+                "dob": dob_str,
+                "health_condition": health,
+                "key_features": ", ".join(features) if features else None,
+                "photo_url": c.photo_url,
+                "cattle_tag_id": c.inaph_tag_id,
+            })
+
+        return cards
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 
 #add cattle route
 @router.post("/add-new-cattle", response_model=AddCattleResponse)
@@ -61,6 +125,7 @@ async def add_new_cattle(
         local_id_val = f"LIFE-{uuid.uuid4().hex[:8]}"
 
         new_cattle = Cattle(
+            cattle_name=(cattleName.strip() if cattleName else None),
             cid=cid_val,
             species=species,
             breed=breed,
@@ -80,10 +145,12 @@ async def add_new_cattle(
         await db.commit()
         await db.refresh(new_cattle)
 
-        return {"message": "Cattle added successfully!", "cid": str(new_cattle.cid), "local_cattle_id": local_id_val}
+        return {"message": "Cattle added successfully!", "cid": str(new_cattle.cid), "local_cattle_id": local_id_val, "cattle_name": new_cattle.cattle_name}
     except Exception as e:
         try:
             await db.rollback()
         except Exception:
             pass
         raise HTTPException(status_code=400, detail=str(e))
+    
+

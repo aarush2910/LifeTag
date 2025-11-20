@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 from uuid import UUID
@@ -43,8 +43,7 @@ class CattleRead(BaseModel):
     source: Optional[str] = None
     photo_url: Optional[str] = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AddCattleResponse(BaseModel):
@@ -52,5 +51,4 @@ class AddCattleResponse(BaseModel):
     cid: UUID
     local_cattle_id: str
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

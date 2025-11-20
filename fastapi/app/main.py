@@ -7,7 +7,7 @@ from app.core.config import settings
 from app.db.session import engine
 from app.db.base import Base
 from app.api.v1 import auth, complaints, vet, shelter, cattles, vet_vaccination, vet_health
-from app.api.v1.vet_appointment import router as vet_appointment_router
+from app.api.v1.vet_request import router as vet_request_router
 from starlette.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi import HTTPException
@@ -30,7 +30,7 @@ app.add_middleware(
 # Include routers with correct prefixes and tags
 app.include_router(auth.router, prefix="/api/auth",)
 app.include_router(vet.router, prefix="/api/vet")
-app.include_router(vet_appointment_router, prefix="/api/vet/appointments")
+app.include_router(vet_request_router, prefix="/api/vet/appointments")
 app.include_router(vet_health.router, prefix="/api/vet/health-record")
 app.include_router(vet_vaccination.router, prefix="/api/vet/vaccination-events")
 app.include_router(shelter.router, prefix="/api/shelter")

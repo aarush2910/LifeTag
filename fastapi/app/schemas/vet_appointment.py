@@ -1,7 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, model_validator
 from typing import Optional
 from datetime import date
 from enum import Enum
+from typing import List
+from uuid import UUID
 
 # ---- ENUM (must match model enum) ----
 class StatusEnum(str, Enum):
@@ -10,21 +12,33 @@ class StatusEnum(str, Enum):
     Completed = "Completed"
     Cancelled = "Cancelled"
 
-# ---- Base Schema ----
+# ---- Response Base Schema ----
 class AppointmentBase(BaseModel):
-    farmer_name: str
-    inaph_id: str
-    cattle_tag_id: str
+    farmer_name: Optional[str] = None
+    inaph_id: Optional[str] = None
+    cattle_tag_id: Optional[str] = None
     cattle_breed: Optional[str] = None
     symptoms: str
     appointment_date: date
-    time_slot: str
+    time_slot: Optional[str] = None
     status: Optional[StatusEnum] = StatusEnum.Pending
     remarks: Optional[str] = None
 
-# ---- Create Schema ----
-class AppointmentCreate(AppointmentBase):
-    pass
+    # Provide explicit tag fields so frontend can display both identifiers
+    inaph_tag_id: Optional[str] = None
+    local_cattle_id: Optional[str] = None
+    cattle_cid_short: Optional[str] = None
+
+# ---- Create Schema (what farmer sends) ----
+class AppointmentCreate(BaseModel):
+    # optional: front-end may send inaph_id to help resolve farmer if owner_id header missing
+    inaph_id: Optional[str] = None
+    # Farmer chooses cattle by name in UI; frontend must send `cattle_id` (UUID) or `cattle_tag_id`.
+    # `AppointmentCreateWithIds` extends this with explicit UUIDs.
+    symptoms: str
+    appointment_date: date
+    time_slot: str
+    remarks: Optional[str] = None
 
 # ---- Update Schema (for vet approvals etc.) ----
 class AppointmentUpdate(BaseModel):
@@ -36,5 +50,27 @@ class AppointmentResponse(AppointmentBase):
     appointment_code: str
     created_at: Optional[str]
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PaginatedAppointments(BaseModel):
+    total: int
+    skip: int
+    limit: int
+    results: List[AppointmentResponse]
+
+
+class AppointmentCreateWithIds(AppointmentCreate):
+    owner_id: Optional[UUID] = None
+    cattle_id: Optional[UUID] = None
+    vet_id: Optional[UUID] = None
+    cattle_tag_id: Optional[str] = None
+
+    @model_validator(mode="after")
+    def ensure_cattle_identifier(cls, values):
+        # Require at least one of `cattle_id` (UUID) or `cattle_tag_id` (local/inaph tag)
+        cid = values.cattle_id if hasattr(values, 'cattle_id') else None
+        ctag = values.cattle_tag_id if hasattr(values, 'cattle_tag_id') else None
+        if not cid and not ctag:
+            raise ValueError("Either `cattle_id` or `cattle_tag_id` must be provided in the request body.")
+        return values

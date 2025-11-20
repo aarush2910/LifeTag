@@ -17,7 +17,8 @@ class Cattle(Base):
     inaph_tag_id: Mapped[str] = mapped_column(String(50), unique=True, nullable=True)
     inaph_farmer_id: Mapped[str] = mapped_column(String(30), nullable=True)
     local_cattle_id: Mapped[str] = mapped_column(String(30), unique=True, nullable=True)
-
+    
+    cattle_name: Mapped[str]=mapped_column(String(50), nullable=False)
     species: Mapped[str] = mapped_column(String(30), nullable=False)
     breed: Mapped[str] = mapped_column(String(50), nullable=False)
     sex: Mapped[str] = mapped_column(String(10), nullable=False)

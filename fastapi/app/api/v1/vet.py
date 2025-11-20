@@ -11,7 +11,10 @@ from app.schemas.vet_auth import (
     VetLoginResponse
 )
 
-from app.core.security import hash_password, verify_password
+from app.core.security import hash_password, verify_password, create_access_token
+from app.schemas.auth import Token 
+from datetime import timedelta
+from app.core.config import settings
 
 
 router = APIRouter(tags=["vet-auth"])
@@ -89,11 +92,12 @@ async def create_vet_password(payload: VetCreatePasswordRequest, db: AsyncSessio
 # ============================================================
 # 3. LOGIN — USING LICENSE + PASSWORD
 # ============================================================
-@router.post("/vet/login", response_model=VetLoginResponse)
+@router.post("/vet/login", response_model=Token)
 async def vet_login(payload: VetLoginRequest, db: AsyncSession = Depends(get_db)):
     """
     Step 3:
     ✔ Vet logs in using license number + password
+    ✔ Returns JWT token + vet info
     """
 
     vet = await db.scalar(
@@ -101,17 +105,30 @@ async def vet_login(payload: VetLoginRequest, db: AsyncSession = Depends(get_db)
     )
 
     if not vet:
-        raise HTTPException(401, "Invalid license number or password")
+        raise HTTPException(status_code=401, detail="Invalid license number or password")
 
     if not vet.password_hash:
-        raise HTTPException(400, "Password not set. Please create password first.")
+        raise HTTPException(status_code=400, detail="Password not set. Please create password first.")
 
     # Validate password
     if not verify_password(payload.password, vet.password_hash):
-        raise HTTPException(401, "Invalid license number or password")
+        raise HTTPException(status_code=401, detail="Invalid license number or password")
 
-    return VetLoginResponse(
-        vid=vet.vid,
-        vname=vet.vname,
-        role="vet"
+    user_id = str(vet.vid)
+    user_name = vet.vname
+    role = "vet"
+
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user_id, "role": role},
+        expires_delta=access_token_expires,
+    )
+
+    return Token(
+        access_token=access_token,
+        token_type="bearer",
+        user_id=user_id,
+        user_name=user_name,
+        role=role,
+        message="Login successful",
     )

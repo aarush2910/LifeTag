@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse
 from fastapi import HTTPException
 
 
+
 app = FastAPI(title="LifeTag API")
 
 

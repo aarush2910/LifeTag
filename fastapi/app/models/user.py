@@ -60,7 +60,7 @@ class Vet(Base):
     # Qualifications
     qualification: Mapped[str] = mapped_column(String(50), nullable=True)
     specialization: Mapped[str] = mapped_column(String(100), nullable=True)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=True)
 
 
 

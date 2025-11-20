@@ -1,7 +1,7 @@
-from sqlalchemy.orm import Mapped, mapped_column , relationship
-from sqlalchemy import String, Integer, DateTime, func, Index , ForeignKey , Float
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import String, Integer, DateTime, func, Index, ForeignKey, Float
 from datetime import datetime
-import uuid 
+import uuid
 
 from app.db.base import Base
 
@@ -13,7 +13,7 @@ class Cattle(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
 
-    #  INAPH / Lifetag fields
+    # INAPH / Lifetag fields
     inaph_tag_id: Mapped[str] = mapped_column(String(50), unique=True, nullable=True)
     inaph_farmer_id: Mapped[str] = mapped_column(String(30), nullable=True)
     local_cattle_id: Mapped[str] = mapped_column(String(30), unique=True, nullable=True)
@@ -29,11 +29,16 @@ class Cattle(Base):
     owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("farmers.fid"), nullable=False)
     farmer = relationship("Farmer", backref="cattles")
 
-    # Additional fields requested
+    # Additional fields
     weight: Mapped[float] = mapped_column(Float, nullable=True)
     health_condition: Mapped[str] = mapped_column(String(100), nullable=True)
     purchased_date: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     source: Mapped[str] = mapped_column(String(100), nullable=True)
     photo_url: Mapped[str] = mapped_column(String(255), nullable=True)
 
-
+    # 🔹 Relationship to VetEvent (this was missing)
+    events = relationship(
+        "VetEvent",
+        back_populates="cattle",
+        cascade="all, delete-orphan",
+    )

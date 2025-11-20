@@ -36,6 +36,14 @@ class LoginRequest(BaseModel):
     identifier: str
     password: str
 
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user_id: str
+    user_name: str
+    role: str
+    message: str = "Login successful"
+
 
 class InaphLoginRequest(BaseModel):
     inaph_id: str
@@ -53,6 +61,12 @@ class InaphLoginResponse(BaseModel):
     user_name: Optional[str] = None
     role: Optional[str] = "farmer"
     faadhar: Optional[str] = None  # Aadhaar added for dashboard redirect
+    access_token: Optional[str] = None
+    token_type: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
 
     class Config:
         orm_mode = True

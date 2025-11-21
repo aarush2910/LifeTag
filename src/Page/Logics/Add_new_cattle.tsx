@@ -1,5 +1,17 @@
-import { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "..//../components/ui/sidebar";
+import { AppSidebar } from "../../components/AppSidebar";
+import UserMenu from "../..//components/user-menu";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { items } from "../../menudata/SidebarMenuItem";
+
+// Re-embed AddCattleForm here so this file is self-contained — you can instead import if you keep it separate
+import { useState } from "react";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
@@ -12,7 +24,7 @@ import {
   SelectValue,
 } from "..//../components/ui/select";
 
-export default function AddCattleForm() {
+function AddCattleFormInline() {
   const [formData, setFormData] = useState({
     cid: "",
     species: "",
@@ -29,7 +41,7 @@ export default function AddCattleForm() {
 
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (field, value) => {
+  const handleChange = (field: string, value: any) => {
     if (field === "weight") {
       const num = value === "" ? "" : Number(value);
       if (num !== "" && (Number.isNaN(num) || num < 0)) {
@@ -62,7 +74,7 @@ export default function AddCattleForm() {
     );
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
@@ -119,7 +131,7 @@ export default function AddCattleForm() {
         source: "",
         photo: null,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Error:", error);
       alert(`Error: ${error.message}`);
     } finally {
@@ -127,209 +139,209 @@ export default function AddCattleForm() {
     }
   };
 
-  // Animation presets
   const fadeUp = {
     hidden: { opacity: 0, y: 40 },
     visible: { opacity: 1, y: 0 },
-  };
+  } as any;
 
   return (
-    <div className="flex justify-center items-center min-h-screen w-full bg-gradient-to-br from-zinc-50 via-zinc-100 to-zinc-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 p-4">
-      <motion.section
-        className="w-full max-w-3xl flex flex-col items-center justify-center space-y-10"
-        initial="hidden"
-        animate="visible"
-        transition={{ staggerChildren: 0.1 }}
-      >
-        {/* Header with animation */}
-        <motion.div
-          variants={fadeUp}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="bg-primary/80 p-6 rounded-2xl shadow-xl text-primary-foreground text-center w-full"
-        >
-          <h1 className="text-3xl font-bold mb-2">Add New Cattle</h1>
-          <p className="text-primary-foreground/90 max-w-2xl mx-auto">
-            Register your cattle details carefully. Fields marked with * are required.
-          </p>
-        </motion.div>
+    <motion.form
+      onSubmit={handleSubmit}
+      variants={fadeUp}
+      initial="hidden"
+      animate="visible"
+      transition={{ staggerChildren: 0.05 }}
+      className="space-y-8"
+    >
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label>Cattle ID (optional)</Label>
+          <Input
+            value={formData.cid}
+            onChange={(e: any) => handleChange("cid", e.target.value)}
+            placeholder="Optional: your own cattle id"
+            className="h-11"
+          />
+        </div>
 
-        {/* Form container with smooth fade-in */}
-        <motion.form
-          onSubmit={handleSubmit}
-          variants={fadeUp}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="bg-card w-full rounded-2xl border shadow-2xl overflow-hidden p-8 space-y-10"
-        >
-          {/* Cattle Details */}
-          <motion.div variants={fadeUp} transition={{ delay: 0.1 }}>
-            <div className="flex items-center gap-2 pb-3 border-b">
-              <h4 className="text-lg font-semibold">Cattle Details</h4>
+        <div className="space-y-2">
+          <Label>Species *</Label>
+          <Select
+            value={formData.species}
+            onValueChange={(val: string) => handleChange("species", val)}
+          >
+            <SelectTrigger className="h-11">
+              <SelectValue placeholder="Select species" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Cow">Cow</SelectItem>
+              <SelectItem value="Buffalo">Buffalo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Breed *</Label>
+          <Input
+            value={formData.breed}
+            onChange={(e: any) => handleChange("breed", e.target.value)}
+            placeholder="e.g. Gir, Sahiwal"
+            required
+            className="h-11"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Sex *</Label>
+          <Select
+            value={formData.sex}
+            onValueChange={(val: string) => handleChange("sex", val)}
+          >
+            <SelectTrigger className="h-11">
+              <SelectValue placeholder="Select sex" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Male">Male</SelectItem>
+              <SelectItem value="Female">Female</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Date of Birth *</Label>
+          <Input
+            type="date"
+            value={formData.dob}
+            onChange={(e: any) => handleChange("dob", e.target.value)}
+            required
+            className="h-11"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Weight (kg)</Label>
+          <Input
+            type="number"
+            value={formData.weight}
+            onChange={(e: any) => handleChange("weight", e.target.value)}
+            className="h-11"
+            placeholder="Enter weight"
+            min="0"
+          />
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label>Colour</Label>
+          <Input
+            value={formData.colour}
+            onChange={(e: any) => handleChange("colour", e.target.value)}
+            placeholder="e.g. Brown"
+            className="h-11"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Health Condition</Label>
+          <Input
+            value={formData.healthCondition}
+            onChange={(e: any) => handleChange("healthCondition", e.target.value)}
+            placeholder="e.g. Healthy, Under Treatment"
+            className="h-11"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Purchase Date (optional)</Label>
+          <Input
+            type="date"
+            value={formData.purchaseDate}
+            onChange={(e: any) => handleChange("purchaseDate", e.target.value)}
+            className="h-11"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Source</Label>
+          <Select
+            value={formData.source}
+            onValueChange={(val: string) => handleChange("source", val)}
+          >
+            <SelectTrigger className="h-11">
+              <SelectValue placeholder="Select source" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Purchased">Purchased</SelectItem>
+              <SelectItem value="Gifted">Gifted</SelectItem>
+              <SelectItem value="Born in farm">Born in farm</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Photo (optional)</Label>
+          <Input
+            type="file"
+            accept="image/*"
+            onChange={(e: any) => handleChange("photo", e.target.files[0])}
+            className="h-11"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center">
+        <Button type="submit" className="w-full h-12 text-lg" disabled={loading}>
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <Spinner size={20} />
+              <span>Saving...</span>
+            </span>
+          ) : (
+            "Add Cattle"
+          )}
+        </Button>
+      </div>
+    </motion.form>
+  );
+}
+
+export default function CattleAddWithSidebar() {
+  return (
+    <div className="w-full">
+      <SidebarProvider>
+        <AppSidebar items={items} />
+        <SidebarInset>
+          <motion.header
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex h-16 shrink-0 items-center gap-2 border-b bg-background/80 backdrop-blur-md sticky top-0 z-10"
+          >
+            <SidebarTrigger className="-ml-1" />
+            <h1 className="text-lg font-semibold ml-4">🐄 Add New Cattle</h1>
+            <div className="ml-auto pr-2 md:pr-4">
+              <UserMenu />
             </div>
+          </motion.header>
 
-            <div className="grid md:grid-cols-2 gap-6 mt-4">
-              <div className="space-y-2">
-                <Label>Cattle ID (optional)</Label>
-                <Input
-                  value={formData.cid}
-                  onChange={(e) => handleChange("cid", e.target.value)}
-                  placeholder="Optional: your own cattle id"
-                  className="h-11"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Species *</Label>
-                <Select
-                  value={formData.species}
-                  onValueChange={(val) => handleChange("species", val)}
-                >
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Select species" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Cow">Cow</SelectItem>
-                    <SelectItem value="Buffalo">Buffalo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Breed *</Label>
-                <Input
-                  value={formData.breed}
-                  onChange={(e) => handleChange("breed", e.target.value)}
-                  placeholder="e.g. Gir, Sahiwal"
-                  required
-                  className="h-11"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Sex *</Label>
-                <Select
-                  value={formData.sex}
-                  onValueChange={(val) => handleChange("sex", val)}
-                >
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Select sex" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Male">Male</SelectItem>
-                    <SelectItem value="Female">Female</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Date of Birth *</Label>
-                <Input
-                  type="date"
-                  value={formData.dob}
-                  onChange={(e) => handleChange("dob", e.target.value)}
-                  required
-                  className="h-11"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Weight (kg)</Label>
-                <Input
-                  type="number"
-                  value={formData.weight}
-                  onChange={(e) => handleChange("weight", e.target.value)}
-                  className="h-11"
-                  placeholder="Enter weight"
-                  min="0"
-                />
-              </div>
+          <motion.div className="flex flex-1 flex-col gap-4 p-6 pt-6 min-h-screen bg-gray-50">
+            <div className="max-w-5xl w-full mx-auto">
+              <Card className="overflow-hidden shadow-lg border">
+                <CardHeader className="bg-primary/80 text-primary-foreground p-6">
+  <CardTitle className="text-2xl font-bold">Add New Cattle</CardTitle>
+  <p className="text-primary-foreground/80 text-sm mt-1">
+    Register your cattle details carefully. Fields marked with * are required.
+  </p>
+</CardHeader>
+                <CardContent>
+                  <AddCattleFormInline />
+                </CardContent>
+              </Card>
             </div>
           </motion.div>
-
-          {/* Additional Info */}
-          <motion.div variants={fadeUp} transition={{ delay: 0.2 }}>
-            <div className="flex items-center gap-2 pb-3 border-b">
-              <h4 className="text-lg font-semibold">Additional Information</h4>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6 mt-4">
-              <div className="space-y-2">
-                <Label>Colour</Label>
-                <Input
-                  value={formData.colour}
-                  onChange={(e) => handleChange("colour", e.target.value)}
-                  placeholder="e.g. Brown"
-                  className="h-11"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Health Condition</Label>
-                <Input
-                  value={formData.healthCondition}
-                  onChange={(e) => handleChange("healthCondition", e.target.value)}
-                  placeholder="e.g. Healthy, Under Treatment"
-                  className="h-11"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Purchase Date (optional)</Label>
-                <Input
-                  type="date"
-                  value={formData.purchaseDate}
-                  onChange={(e) => handleChange("purchaseDate", e.target.value)}
-                  className="h-11"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Source</Label>
-                <Select
-                  value={formData.source}
-                  onValueChange={(val) => handleChange("source", val)}
-                >
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Select source" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Purchased">Purchased</SelectItem>
-                    <SelectItem value="Gifted">Gifted</SelectItem>
-                    <SelectItem value="Born in farm">Born in farm</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Photo (optional)</Label>
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleChange("photo", e.target.files[0])}
-                  className="h-11"
-                />
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Animated button */}
-          <motion.div whileTap={{ scale: 0.97 }}>
-            <Button
-              type="submit"
-              className="w-full h-12 text-lg"
-              disabled={loading}
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Spinner size={20} />
-                  <span>Saving...</span>
-                </span>
-              ) : (
-                "Add Cattle"
-              )}
-            </Button>
-          </motion.div>
-        </motion.form>
-      </motion.section>
+        </SidebarInset>
+      </SidebarProvider>
     </div>
   );
 }

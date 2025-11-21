@@ -3,12 +3,11 @@ import {
     CardHeader,
     CardTitle,
     CardContent,
-  } from "@/components/ui/card";
-  import { Button } from "@/components/ui/button";
-  import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-  import { Input } from "@/components/ui/input";
+  } from "../../components/ui/card";
+  import { Button } from "../../components/ui/button";
+  import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../components/ui/tabs";
+  import { Input } from "../../components/ui/input";
   import { useState } from "react";
-  import cowji from "../../../public/cowji.jpg"
   const animals = [
     {
       tag: "RFID-001",
@@ -18,7 +17,7 @@ import {
       pen: "Pen A",
       health: "OK",
       adoptionStatus: "Available",
-      photo: cowji,
+      photo: "/cowji.jpg",
       inaphId: "INAPH12345678",
       birthDate: "2021-03-15",
       marks: "White spot on forehead",
@@ -32,7 +31,7 @@ import {
       pen: "Pen B",
       health: "Needs Attention",
       adoptionStatus: "Not Available",
-      photo: cowji,
+      photo: "/cowji.jpg",
       inaphId: "INAPH87654321",
       birthDate: "2022-01-10",
       marks: "Brown patch on left side",

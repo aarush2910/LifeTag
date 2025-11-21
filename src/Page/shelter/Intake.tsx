@@ -11,7 +11,7 @@ import {
     TabsTrigger,
     TabsContent,
   } from "../../components/ui/tabs";
-  import cowji from "../../../public/cowji.jpg";
+  
   import { Table, TableHeader, TableRow, TableCell, TableBody } from "../../components/ui/table";
   import { useState } from "react";
   
@@ -24,7 +24,7 @@ import {
       animal: {
         breed: "Sahiwal",
         age: 3,
-        photo: cowji,
+        photo: "/cowji.jpg",
       },
       applicant: {
         name: "Ravi Kumar",

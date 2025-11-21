@@ -2,11 +2,11 @@ import { useParams } from "react-router-dom";
 import { AppSidebar } from "../../components/AppSidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "../../components/ui/sidebar";
 import { shelterMenu } from "../../menudata/SidebarMenuItem";
-import Home from "../../components/shelter/Home";
-import IntakeRequests from "../../components/shelter/Intake";
-import AnimalRegistry from "../../components/shelter/Animal";
-import HealthRecords from "../../components/shelter/HealthRecord";
-import AdoptionProcessing from "../../components/shelter/Adoption";
+import Home from "../shelter/Home";
+import IntakeRequests from "../shelter/Intake";
+import AnimalRegistry from "../shelter/Animal";
+import HealthRecords from "../shelter/HealthRecord";
+import AdoptionProcessing from "../shelter/Adoption";
 
 
 const Shelter_Dashboard = () => {

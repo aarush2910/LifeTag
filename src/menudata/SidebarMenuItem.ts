@@ -1,5 +1,5 @@
 // import { BarChart3, Calendar, Clock, GraduationCap, HelpCircle, Home, LineChart, TrendingUp } from "lucide-react";
-import { BarChart3, Calendar, CalendarDays, ClipboardClock, Clock, Cross, Home, LineChart, TrendingUp } from "lucide-react";
+import { BarChart3, Calendar, CalendarDays, Clipboard, ClipboardClock, Clock, Cross, Handshake, Home, HomeIcon, LineChart, MedalIcon, Rabbit } from "lucide-react";
 
 export const items = [
     {
@@ -53,4 +53,32 @@ export const items = [
     },
 
 
+  ]
+
+  export const shelterMenu=[
+    {
+      title: "Home",
+      url: "/shelter_dashboard",
+      icon: HomeIcon,
+    },
+    {
+      title: "Intake Requests",
+      url: "/shelter_dashboard/intake-requests",
+      icon: Clipboard,
+    },
+    {
+      title: "View Animals",
+      url: "/shelter_dashboard/animals",
+      icon: Rabbit,
+    },
+    {
+      title: "Health Records",
+      url: "/shelter_dashboard/health-record",
+      icon: MedalIcon,
+    },
+    {
+      title: "Adoptions ",
+      url: "/shelter_dashboard/adoption",
+      icon: Handshake,
+    },
   ]

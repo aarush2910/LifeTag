@@ -26,7 +26,7 @@ from app.schemas.vet_appointment import (
     AppointmentCreateWithIds,
 )
 
-router = APIRouter(tags=["appointments"])
+router = APIRouter(tags=["Appointments"])
 
 
 @router.get("/vets", response_model=List[VetCard])
@@ -177,7 +177,7 @@ async def list_appointments(
 
 
 # Update appointment (status and/or remarks)
-@router.put("/{appointment_id}", response_model=AppointmentResponse)
+@router.put("/", response_model=AppointmentResponse)
 async def update_appointment(appointment_id: UUID, payload: AppointmentUpdate, db: AsyncSession = Depends(get_db)):
     # load appointment with related farmer and cattle
     stmt = select(Appointment).options(selectinload(Appointment.farmer), selectinload(Appointment.cattle)).where(Appointment.aid == appointment_id)
@@ -203,7 +203,7 @@ async def update_appointment(appointment_id: UUID, payload: AppointmentUpdate, d
 
 
 # Delete appointment
-@router.delete("/{appointment_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_appointment(appointment_id: UUID, db: AsyncSession = Depends(get_db)):
     appt = await db.get(Appointment, appointment_id)
     if not appt:

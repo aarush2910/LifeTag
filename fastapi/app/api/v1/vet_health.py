@@ -8,11 +8,11 @@ from app.schemas.vet_health import VetHealthRecordCreate, VetHealthRecordRespons
 from app.models.vet_health import VetHealthRecord
 from app.models.vet_appointment import Appointment
 
-router = APIRouter(prefix="/vet/health-record", tags=["Vet Health Record"])
+router = APIRouter( tags=["Vet Health Record"])
 
 
 # 🩺 Create new health record FOR AN APPOINTMENT
-@router.post("/{appointment_code}", response_model=VetHealthRecordResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/ ", response_model=VetHealthRecordResponse, status_code=status.HTTP_201_CREATED)
 async def add_health_record(
     appointment_code: str,
     record: VetHealthRecordCreate,
@@ -84,7 +84,7 @@ async def list_health_records(db: AsyncSession = Depends(get_db)):
 
 
 # 🔍 Get records by INAPH ID
-@router.get("/inaph/{inaph_id}", response_model=list[VetHealthRecordResponse])
+@router.get("/Inaph_ID", response_model=list[VetHealthRecordResponse])
 async def get_by_inaph(inaph_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.scalars(
         select(VetHealthRecord).where(VetHealthRecord.inaph_id == inaph_id)
@@ -96,7 +96,7 @@ async def get_by_inaph(inaph_id: str, db: AsyncSession = Depends(get_db)):
 
 
 # 🔍 Get records by Cattle ID
-@router.get("/cattle/{cattle_id}", response_model=list[VetHealthRecordResponse])
+@router.get("/cattle_ID", response_model=list[VetHealthRecordResponse])
 async def get_by_cattle(cattle_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.scalars(
         select(VetHealthRecord).where(VetHealthRecord.cattle_id == cattle_id)

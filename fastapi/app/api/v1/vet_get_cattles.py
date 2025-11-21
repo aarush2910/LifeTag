@@ -9,9 +9,9 @@ from app.models.vet_appointment import Appointment
 from app.models.cattle import Cattle
 from app.schemas.cattle import CattleRead  # tumhara hi schema
 
-router = APIRouter(tags=["appointments-extra"])
+router = APIRouter(tags=["Appointments-Extra"])
 
-@router.get("/appointments/{appointment_id}/cattle", response_model=list[CattleRead])
+@router.get("/cattle", response_model=list[CattleRead])
 async def list_cattle_for_appointment(appointment_id: UUID, db: AsyncSession = Depends(get_db)):
     # 1️⃣ Appointment lao
     appt = await db.get(Appointment, appointment_id)

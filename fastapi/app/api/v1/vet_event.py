@@ -1,15 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
-from app.schemas.vet_vactination import VetEventCreate, VetEventResponse
-from crud.vet_vactination import (
+from app.schemas.vet_event import VetEventCreate, VetEventResponse
+from crud.vet_event import (
     create_vet_event,
     get_all_vet_events,
     get_events_by_cattle
 )
 from app.db.session import get_db
 
-router = APIRouter(prefix="/vaccination-events", tags=["Vet Events"])
+router = APIRouter( tags=["Vet Events"])
 
 # 🟢 Create new vaccination event
 @router.post("/create", response_model=VetEventResponse, status_code=201)
@@ -31,7 +31,7 @@ async def list_vet_events(db: AsyncSession = Depends(get_db)):
 
 
 # 🟣 Get vaccination events for a specific cattle
-@router.get("/cattle/{cattle_id}", response_model=list[VetEventResponse])
+@router.get("/cattle_id", response_model=list[VetEventResponse])
 async def list_vet_events_for_cattle(cattle_id: UUID, db: AsyncSession = Depends(get_db)):
     events = await get_events_by_cattle(db, cattle_id)
     if not events:

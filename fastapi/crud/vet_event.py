@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.vet_health import VetEvent
-from app.schemas.vet_vactination import VetEventCreate
+from app.schemas.vet_event import VetEventCreate
 from uuid import UUID
 
 async def create_vet_event(db: AsyncSession, event: VetEventCreate) -> VetEvent:

@@ -1,9 +1,17 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
+import { Card, CardContent, CardHeader } from "../../../components/ui/card";
+
+/**
+ * Health.tsx
+ * - Posts to: http://127.0.0.1:8000/vet/health-record/
+ * - Request body matches VetHealthRecordCreate
+ */
 
 export default function Health() {
+  const [inaphId, setInaphId] = useState("");
   const [cattle, setCattle] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
   const [treatment, setTreatment] = useState("");
@@ -12,43 +20,89 @@ export default function Health() {
   const [remarks, setRemarks] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [createdId, setCreatedId] = useState<string | null>(null);
+
+  const validate = () => {
+    if (!inaphId.trim()) return "INAPH ID is required.";
+    if (!cattle.trim()) return "Cattle ID is required.";
+    if (!diagnosis.trim()) return "Diagnosis is required.";
+    if (!treatment.trim()) return "Treatment is required.";
+    // optional: prevent follow-up date in the past
+    if (followUpDate) {
+      const today = new Date();
+      const fu = new Date(followUpDate + "T00:00:00");
+      // zero time portion for today
+      today.setHours(0, 0, 0, 0);
+      if (fu < today) return "Follow-up date cannot be in the past.";
+    }
+    return null;
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setCreatedId(null);
 
-    const requestData = {
-      cattle,
-      diagnosis,
-      treatment,
-      medicines,
-      follow_up_date: followUpDate,
-      remarks,
+    const vErr = validate();
+    if (vErr) {
+      setError(vErr);
+      setLoading(false);
+      return;
+    }
+
+    const requestData: {
+      inaph_id: string;
+      cattle_id: string;
+      diagnosis: string;
+      treatment: string;
+      medicines?: string | null;
+      follow_up_date?: string | null;
+      remarks?: string | null;
+    } = {
+      inaph_id: inaphId.trim(),
+      cattle_id: cattle.trim(),
+      diagnosis: diagnosis.trim(),
+      treatment: treatment.trim(),
+      medicines: medicines.trim() || null,
+      follow_up_date: followUpDate ? followUpDate : null,
+      remarks: remarks.trim() || null,
     };
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/health-records", {
+      const res = await fetch("http://127.0.0.1:8000/vet/health-record/vet-prescription", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          // Add Authorization header here if your API requires auth:
+          // "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify(requestData),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Something went wrong");
-      } else {
-        alert("Health record saved successfully!");
+      // If success (201), backend returns created VetHealthRecordResponse
+      if (res.status === 201) {
+        const data = await res.json();
+        // Expecting health_record_id in response
+        setCreatedId(data.health_record_id ?? null);
+        alert("✅ Health record saved successfully!");
+        // reset
+        setInaphId("");
         setCattle("");
         setDiagnosis("");
         setTreatment("");
         setMedicines("");
         setFollowUpDate("");
         setRemarks("");
+      } else {
+        // parse error body if possible
+        const data = await res.json().catch(() => ({}));
+        const msg = data.detail || data.error || data.message || `HTTP ${res.status}`;
+        setError(msg);
       }
-    } catch (err) {
-      console.error(err);
-      setError("Network error");
+    } catch (err: any) {
+      console.error("Network error:", err);
+      setError("Network error or server unreachable");
     } finally {
       setLoading(false);
     }
@@ -74,7 +128,37 @@ export default function Health() {
             </div>
           )}
 
-          {/* Cattle Selection (as Input) */}
+          {createdId && (
+            <div className="mb-6">
+              <Card>
+                <CardHeader className="p-4">
+                  <h3 className="font-semibold">Record Created</h3>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm">Health record created with ID:</p>
+                  <p className="mt-2 font-mono">{createdId}</p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* INAPH ID */}
+          <div className="space-y-2">
+            <Label htmlFor="inaph" className="text-sm font-semibold text-[var(--color-muted-foreground)]">
+              INAPH ID *
+            </Label>
+            <Input
+              id="inaph"
+              type="text"
+              className="w-full h-11 rounded-md border border-[var(--color-border)] bg-[var(--color-input)] text-[var(--color-foreground)]"
+              placeholder="Enter farmer INAPH ID (e.g., INAPH-F0049)"
+              value={inaphId}
+              onChange={(e) => setInaphId(e.target.value)}
+              required
+            />
+          </div>
+
+          {/* Cattle ID */}
           <div className="space-y-2">
             <Label htmlFor="cattle" className="text-sm font-semibold text-[var(--color-muted-foreground)]">
               Cattle ID *
@@ -106,7 +190,7 @@ export default function Health() {
             />
           </div>
 
-          {/* Treatment / Prescription */}
+          {/* Treatment */}
           <div className="space-y-2">
             <Label htmlFor="treatment" className="text-sm font-semibold text-[var(--color-muted-foreground)]">
               Treatment / Prescription *
@@ -131,7 +215,7 @@ export default function Health() {
               id="medicines"
               type="text"
               className="h-11 rounded-md border border-[var(--color-border)] bg-[var(--color-input)] text-[var(--color-foreground)]"
-              placeholder="List medicines"
+              placeholder="List medicines (comma separated)"
               value={medicines}
               onChange={(e) => setMedicines(e.target.value)}
             />
@@ -166,7 +250,6 @@ export default function Health() {
             />
           </div>
 
-          {/* Submit Button */}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Saving..." : "Save Record"}
           </Button>

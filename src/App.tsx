@@ -18,6 +18,7 @@ import View_cattle_list from "./Page/Logics/View_cattle_list"
 import Appointment_info from "./Page/Logics/Appointment_info"
 import Ownership_transfer from "./Page/Logics/Ownership_transfer"
 import Retirement_request from "./Page/Logics/Retirement_request"
+import Shelter_Dashboard from "./Page/Dashboard/Shelter_Dashboard"
 import VetLogin from "./Page/VetLogin"
 import VetCreatePassword from "./Page/VetCreatePassword"
 
@@ -40,6 +41,8 @@ const App = () => {
         <Route path="/Contact" element={<Contact />} />
         <Route path="/vet_dashboard" element={<Vet_Dashboard/>} />
         <Route path="/vet_dashboard/:nested" element={<Vet_Dashboard/>} />
+        <Route path="/shelter_dashboard" element={<Shelter_Dashboard/>} />
+        <Route path="/shelter_dashboard/:nested" element={<Shelter_Dashboard/>} />
         <Route path="/vet/login" element={<VetLogin />} />
       <Route path="/vet/create-password" element={<VetCreatePassword />} />
 

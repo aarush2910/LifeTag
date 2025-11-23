@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -13,7 +14,7 @@ export default function InaphPage() {
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!inaphId.trim() || !password.trim()) {
@@ -50,7 +51,11 @@ export default function InaphPage() {
         navigate("/InaphLogin");
       }, 1500);
     } catch (error) {
-      setMessage(`❌ ${error.message}`);
+      if (error instanceof Error) {
+        setMessage(`❌ ${error.message}`);
+      } else {
+        setMessage(`❌ ${String(error)}`);
+      }
     } finally {
       setLoading(false);
     }

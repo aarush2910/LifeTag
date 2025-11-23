@@ -65,12 +65,12 @@ export const HeroHeader = () => {
                                 to="/"
                                 aria-label="home"
                                 className="flex items-center text-xl space-x-2"
-                                
-                                onClick={()=>{
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                                onClick={() => {
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
 
                                 }}
-                                >
+                            >
                                 LifeTag
                             </Link>
 
@@ -136,9 +136,48 @@ export const HeroHeader = () => {
                                     asChild
                                     variant="outline"
                                     size="sm">
-                                    <Link to="/dialog">
-                                        <span>Login</span>
-                                    </Link>
+
+                                    <div className="relative group inline-block">
+                                        <Link
+                                            to="#"
+                                            className="px-3 py-1 rounded hover:bg-primary/10 inline-flex items-center"
+                                            aria-haspopup="true"
+                                            aria-expanded="false"
+                                        >
+                                            Login
+                                        </Link>
+
+                                        {/* Dropdown; visible on parent hover (group-hover) */}
+                                        <div
+                                            className="absolute left-0 mt-2 w-40 rounded-md border bg-card shadow-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50"
+                                            role="menu"
+                                        >
+                                            <nav className="flex flex-col p-1">
+                                                <Link
+                                                    to="/dialog"
+                                                    className="px-3 py-2 rounded hover:bg-primary/5 text-sm"
+                                                    role="menuitem"
+                                                >
+                                                    Farmer
+                                                </Link>
+                                                <Link
+                                                    to="/vet/login"
+                                                    className="px-3 py-2 rounded hover:bg-primary/5 text-sm"
+                                                    role="menuitem"
+                                                >
+                                                    Vet
+                                                </Link>
+                                                <Link
+                                                    to="/shelter/login"
+                                                    className="px-3 py-2 rounded hover:bg-primary/5 text-sm"
+                                                    role="menuitem"
+                                                >
+                                                    Shelter
+                                                </Link>
+                                            </nav>
+                                        </div>
+                                    </div>
+
                                 </Button>
                                 <Button
                                     asChild

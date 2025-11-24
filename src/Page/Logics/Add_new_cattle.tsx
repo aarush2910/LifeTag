@@ -36,10 +36,19 @@ function AddCattleFormInline() {
     healthCondition: "",
     purchaseDate: "",
     source: "",
-    photo: null,
+    photo: null as File | null,
   });
 
   const [loading, setLoading] = useState(false);
+
+  // 🔒 Lock calendar to today's date only
+  const today = React.useMemo(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }, []);
 
   const handleChange = (field: string, value: any) => {
     if (field === "weight") {
@@ -81,6 +90,19 @@ function AddCattleFormInline() {
       const farmerId = getStoredFarmerId();
       if (!farmerId) {
         alert("Please login first — no farmer ID found.");
+        setLoading(false);
+        return;
+      }
+
+      // 🔒 Extra validation: allow only today's date for both date fields
+      if (formData.dob !== today) {
+        alert("Date of Birth must be today's date only.");
+        setLoading(false);
+        return;
+      }
+
+      if (formData.purchaseDate && formData.purchaseDate !== today) {
+        alert("Purchase Date (if provided) must be today's date only.");
         setLoading(false);
         return;
       }
@@ -215,6 +237,9 @@ function AddCattleFormInline() {
             onChange={(e: any) => handleChange("dob", e.target.value)}
             required
             className="h-11"
+            // 🔒 only allow today in the calendar UI
+            min={today}
+            max={today}
           />
         </div>
 
@@ -259,6 +284,9 @@ function AddCattleFormInline() {
             value={formData.purchaseDate}
             onChange={(e: any) => handleChange("purchaseDate", e.target.value)}
             className="h-11"
+            // 🔒 only allow today if they select a date
+            min={today}
+            max={today}
           />
         </div>
 
@@ -329,11 +357,11 @@ export default function CattleAddWithSidebar() {
             <div className="max-w-5xl w-full mx-auto">
               <Card className="overflow-hidden shadow-lg border">
                 <CardHeader className="bg-primary/80 text-primary-foreground p-6">
-  <CardTitle className="text-2xl font-bold">Add New Cattle</CardTitle>
-  <p className="text-primary-foreground/80 text-sm mt-1">
-    Register your cattle details carefully. Fields marked with * are required.
-  </p>
-</CardHeader>
+                  <CardTitle className="text-2xl font-bold">Add New Cattle</CardTitle>
+                  <p className="text-primary-foreground/80 text-sm mt-1">
+                    Register your cattle details carefully. Fields marked with * are required.
+                  </p>
+                </CardHeader>
                 <CardContent>
                   <AddCattleFormInline />
                 </CardContent>

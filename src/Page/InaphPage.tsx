@@ -1,6 +1,5 @@
 // src/Page/Auth/InaphPage.tsx
 import { useState } from "react";
-import type { FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -46,7 +45,6 @@ export default function InaphPage() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!inaphId.trim() || !password.trim()) {

@@ -14,20 +14,13 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
 import Spinner from "../../components/ui/spinner";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "..//../components/ui/select";
 
 type AppointmentCreatePayload = {
   owner_id?: string;
   inaph_id?: string;
   cattle_tag_id?: string;
   cattle_id?: string;
-  vet_id: string;
+  vet_id?: string; // now optional
   symptoms: string;
   appointment_date: string; // yyyy-mm-dd
   time_slot: string;
@@ -117,11 +110,7 @@ function AddAppointmentFormInline() {
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1); // for flipper motion
 
-  const steps = [
-    "Farmer & Cattle",
-    "Symptoms & Schedule",
-    "Vet & Details",
-  ];
+  const steps = ["Farmer & Cattle", "Symptoms & Schedule"];
 
   // 🔒 today's date string (yyyy-mm-dd) for validation + input min
   const todayStr = React.useMemo(() => {
@@ -138,7 +127,7 @@ function AddAppointmentFormInline() {
     return dateStr < todayStr;
   };
 
-  // helpers to read stored ids (same approach as your cattle form)
+  // helper to read stored owner id (kept)
   const getStoredOwnerId = (): string | null => {
     try {
       const userJson = localStorage.getItem("user");
@@ -159,24 +148,9 @@ function AddAppointmentFormInline() {
     );
   };
 
-  const getStoredVetId = (): string | null => {
-    try {
-      const userJson = localStorage.getItem("user");
-      if (userJson) {
-        const parsed = JSON.parse(userJson);
-        if (parsed?.vet_id) return parsed.vet_id;
-        if (parsed?.vetId) return parsed.vetId;
-      }
-    } catch (err) {
-      // ignore
-    }
-    return localStorage.getItem("vet_id") || localStorage.getItem("vetId") || null;
-  };
-
   useEffect(() => {
     const owner = getStoredOwnerId();
-    const vet = getStoredVetId();
-    setForm((p) => ({ ...p, owner_id: owner ?? undefined, vet_id: vet ?? undefined }));
+    setForm((p) => ({ ...p, owner_id: owner ?? undefined }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -191,7 +165,7 @@ function AddAppointmentFormInline() {
     if (form.appointment_date && isPastDate(form.appointment_date))
       return "Appointment date cannot be in the past.";
     if (!form.time_slot || form.time_slot.trim() === "") return "Please enter a time slot.";
-    if (!form.vet_id) return "Vet ID is required (please login or provide a vet id).";
+    // vet_id is optional now
     if (!form.owner_id && !form.inaph_id)
       return "Provide either Owner ID (logged-in) or Farmer INAPH ID.";
     if (!form.cattle_tag_id && !form.cattle_id)
@@ -214,12 +188,6 @@ function AddAppointmentFormInline() {
         return "Appointment date cannot be in the past.";
       if (!form.time_slot || form.time_slot.trim() === "")
         return "Please enter a time slot.";
-    }
-    if (step === 2) {
-      if (!form.vet_id || form.vet_id.trim() === "")
-        return "Vet ID is required (please login or provide a vet id).";
-      if (!form.owner_id && !form.inaph_id)
-        return "Provide either Owner ID (logged-in) or Farmer INAPH ID.";
     }
     return null;
   };
@@ -270,6 +238,7 @@ function AddAppointmentFormInline() {
       }
 
       const payload: any = {
+        // include vet_id only if user provided it manually
         vet_id: form.vet_id,
         symptoms: form.symptoms,
         appointment_date: form.appointment_date,
@@ -286,7 +255,7 @@ function AddAppointmentFormInline() {
       if (form.cattle_breed) payload.cattle_breed = form.cattle_breed;
 
       // remove undefined
-      Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+      Object.keys(payload).forEach((k) => (payload[k] === undefined) && delete payload[k]);
 
       const res = await fetch(
         "http://127.0.0.1:8000/api/vet/appointments/appointments",
@@ -312,8 +281,8 @@ function AddAppointmentFormInline() {
         }`
       );
 
-      // Reset form but retain owner and vet from localStorage for convenience
-      resetForm({ owner_id: form.owner_id, vet_id: form.vet_id });
+      // Reset form but retain owner from localStorage for convenience
+      resetForm({ owner_id: form.owner_id });
     } catch (err: any) {
       console.error("Error creating appointment:", err);
       alert(`Error: ${err?.message || "Something went wrong"}`);
@@ -496,76 +465,6 @@ function AddAppointmentFormInline() {
                     }
                     placeholder="e.g. 10:00-11:00"
                     required
-                    className="h-11"
-                  />
-                </div>
-              </motion.div>
-            )}
-
-            {/* STEP 3: Vet & Details */}
-            {currentStep === 2 && (
-              <motion.div
-                key="step-3"
-                custom={direction}
-                variants={cardVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                className="grid md:grid-cols-2 gap-6"
-                style={{ transformStyle: "preserve-3d" }}
-              >
-                <div className="space-y-2">
-                  <Label>Vet ID *</Label>
-                  <Input
-                    value={form.vet_id ?? ""}
-                    onChange={(e: any) =>
-                      handleChange("vet_id", e.target.value)
-                    }
-                    placeholder="Vet UUID or will be filled from login"
-                    className="h-11"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Owner ID (optional)</Label>
-                  <Input
-                    value={form.owner_id ?? ""}
-                    onChange={(e: any) =>
-                      handleChange("owner_id", e.target.value)
-                    }
-                    placeholder="Owner UUID (used instead of inaph_id when present)"
-                    className="h-11"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select
-                    value={form.status ?? "Pending"}
-                    onValueChange={(val: any) =>
-                      handleChange("status", val)
-                    }
-                  >
-                    <SelectTrigger className="h-11">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Pending">Pending</SelectItem>
-                      <SelectItem value="Approved">Approved</SelectItem>
-                      <SelectItem value="Completed">Completed</SelectItem>
-                      <SelectItem value="Cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Remarks (optional)</Label>
-                  <Input
-                    value={form.remarks ?? ""}
-                    onChange={(e: any) =>
-                      handleChange("remarks", e.target.value)
-                    }
-                    placeholder="Any notes for the vet or farmer"
                     className="h-11"
                   />
                 </div>

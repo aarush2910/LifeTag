@@ -7,6 +7,15 @@ import { Label } from "../components/ui/label";
 import { SelectNative } from "../components/ui/select-native";
 import { useState } from "react";
 
+/**
+ * LoginPage
+ *
+ * - Sends credentials to POST /api/auth/login
+ * - On success: stores access_token, role, user_id (and aliases), identifier keys
+ * - These localStorage keys are later consumed by src/lib/api.ts (apiFetch)
+ *   to populate Authorization and x-owner-id / x-inaph-id headers automatically.
+ */
+
 export default function LoginPage() {
   const navigate = useNavigate();
 
@@ -51,13 +60,14 @@ export default function LoginPage() {
     };
 
     try {
+      // NOTE: We use direct fetch for login (no token yet). Later API calls should use src/lib/api.ts apiFetch.
       const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestData),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       console.log("Login response status:", res.status, "body:", data);
 
       if (!res.ok) {
@@ -69,45 +79,62 @@ export default function LoginPage() {
 
       // Successful login — store token + user info
       try {
-        // Token present as data.access_token per backend Token model
+        // 1) Token (JWT) — store under both keys for compatibility
         if (data.access_token) {
           localStorage.setItem("access_token", data.access_token);
-          localStorage.setItem("token", data.access_token); // compatibility
+          localStorage.setItem("token", data.access_token);
         }
 
-        // Save the full response for other pages
+        // 2) Store full response for convenience (may include extra fields)
         localStorage.setItem("user", JSON.stringify(data));
 
-        // Save user id(s)
+        // 3) Role — important so apiFetch can attach role-aware headers
+        const resolvedRole = (data.role || role || "farmer").toString().toLowerCase();
+        localStorage.setItem("role", resolvedRole);
+
+        // 4) user_id (primary id from backend)
+        // Backend returns user_id (string) in Token response -> save it
         if (data.user_id) {
           localStorage.setItem("user_id", data.user_id);
-          localStorage.setItem("farmerId", data.user_id); // keep backward compat
+          // keep backward compatibility aliases
+          if (resolvedRole === "farmer") localStorage.setItem("farmerId", data.user_id);
+          if (resolvedRole === "vet") localStorage.setItem("vet_id", data.user_id);
+          if (resolvedRole === "shelter") localStorage.setItem("shelter_id", data.user_id);
         }
 
-        // Save display name & role
+        // 5) Some backends may include inaph_id in login response — store it if present
+        if ((data as any).inaph_id) {
+          localStorage.setItem("inaph_id", (data as any).inaph_id);
+        }
+
+        // 6) Display name & role (optional)
         if (data.user_name) localStorage.setItem("user_name", data.user_name);
-        if (data.role) localStorage.setItem("role", data.role);
 
-        // Save identifier key (so FarmerAccountInfo can find it)
-        // Prefer Aadhaar (if farmer) — we used `identifier` var when calling API
-        if (role === "farmer") {
-          localStorage.setItem("identifier", identifier);
-          localStorage.setItem("faadhar", identifier);
-        } else if (role === "vet") {
-          localStorage.setItem("identifier", identifier);
-          localStorage.setItem("vemail", identifier);
-        } else if (role === "shelter") {
-          localStorage.setItem("identifier", identifier);
-          localStorage.setItem("semail", identifier);
+        // 7) Save identifier key (so FarmerAccountInfo can find it)
+        // Prefer Aadhaar (if farmer)
+        if (resolvedRole === "farmer") {
+          if (identifier) {
+            localStorage.setItem("identifier", identifier);
+            localStorage.setItem("faadhar", identifier);
+          }
+        } else if (resolvedRole === "vet") {
+          if (identifier) {
+            localStorage.setItem("identifier", identifier);
+            localStorage.setItem("vemail", identifier);
+          }
+        } else if (resolvedRole === "shelter") {
+          if (identifier) {
+            localStorage.setItem("identifier", identifier);
+            localStorage.setItem("semail", identifier);
+          }
         }
-
       } catch (saveErr) {
         console.warn("Warning saving login info to localStorage:", saveErr);
       }
 
       // Redirect to dashboard
       navigate("/dashboard", { replace: true });
-      // slight delay to allow storing before reload
+      // slight delay to allow storing before reload (optional)
       setTimeout(() => window.location.reload(), 150);
     } catch (err) {
       console.error("Network/login error:", err);

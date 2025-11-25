@@ -16,6 +16,7 @@ import InaphLogin from "./Page/InaphLogin"
 import Add_new_cattle from "./Page/Logics/Add_new_cattle"
 import View_cattle_list from "./Page/Logics/View_cattle_list"
 import Appointment_info from "./Page/Logics/Appointment_info"
+import Request_vet from "./Page/Logics/Request_vet"
 import Ownership_transfer from "./Page/Logics/Ownership_transfer"
 import Retirement_request from "./Page/Logics/Retirement_request"
 import Shelter_Dashboard from "./Page/Dashboard/Shelter_Dashboard"
@@ -52,6 +53,7 @@ const App = () => {
           <Route path="/add_new_cattle" element={<Add_new_cattle />} />
           <Route path="/view_cattle_list" element={<View_cattle_list />} />
           <Route path="/appointment_info" element={<Appointment_info />} />
+          <Route path="/request_vet" element={<Request_vet/>} />
           <Route path="/ownership_transfer" element={<Ownership_transfer />} />
           <Route path="/retirement_request" element={<Retirement_request />} />
         </Route>

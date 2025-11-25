@@ -6,6 +6,15 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 
+/**
+ * InaphLogin
+ *
+ * - Checks whether INAPH ID has a password (GET /api/auth/inaph/check-password)
+ * - If password exists, logs in at POST /api/auth/inaph/login
+ * - On successful login: stores access_token, role, user_id, inaph_id, faadhar (if returned)
+ * - These keys are used by src/lib/api.ts to attach headers on subsequent requests.
+ */
+
 export default function InaphLogin() {
   const [inaphId, setInaphId] = useState("");
   const [password, setPassword] = useState("");
@@ -70,13 +79,19 @@ export default function InaphLogin() {
 
       // Successful login — store JWT + user info
       try {
+        // store token
         if (data.access_token) {
           localStorage.setItem("access_token", data.access_token);
-          localStorage.setItem("token", data.access_token); // compatibility
+          localStorage.setItem("token", data.access_token);
         }
 
+        // role (should be "farmer" for INAPH)
+        const role = (data.role || "farmer").toString().toLowerCase();
+        localStorage.setItem("role", role);
+
+        // Build userData and save combined user object
         const userData = {
-          role: data.role || "farmer",
+          role,
           faadhar: data.faadhar || null,
           user_id: data.user_id || null,
           user_name: data.user_name || null,
@@ -84,19 +99,27 @@ export default function InaphLogin() {
         };
         localStorage.setItem("user", JSON.stringify({ ...data, ...userData }));
 
+        // Save user_id (farmer fid) and aliases
         if (data.user_id) {
           localStorage.setItem("user_id", data.user_id);
           localStorage.setItem("farmerId", data.user_id);
         }
+
+        // Save display name and role
         if (data.user_name) localStorage.setItem("user_name", data.user_name);
         if (data.role) localStorage.setItem("role", data.role);
 
-        // Save identifier: prefer faadhar if returned, otherwise inaphId
+        // Save identifier: prefer faadhar if returned, otherwise use inaphId
         if (data.faadhar) {
           localStorage.setItem("identifier", data.faadhar);
           localStorage.setItem("faadhar", data.faadhar);
         } else {
           localStorage.setItem("identifier", inaphId);
+          localStorage.setItem("inaph_id", inaphId);
+        }
+
+        // Ensure inaph_id is set explicitly for header usage
+        if (!localStorage.getItem("inaph_id")) {
           localStorage.setItem("inaph_id", inaphId);
         }
       } catch (saveErr) {

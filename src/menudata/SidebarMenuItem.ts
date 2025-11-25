@@ -19,7 +19,7 @@ export const items = [
     },
      {
       title: "Appointment Request",
-      url: "/appointment_info",
+      url: "/request_vet",
       icon: BarChart3,
     },
     {

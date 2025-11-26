@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   SidebarInset,
   SidebarProvider,
@@ -14,20 +14,13 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
 import Spinner from "../../components/ui/spinner";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "..//../components/ui/select";
 
 type AppointmentCreatePayload = {
   owner_id?: string;
   inaph_id?: string;
   cattle_tag_id?: string;
   cattle_id?: string;
-  vet_id: string;
+  vet_id?: string; // now optional
   symptoms: string;
   appointment_date: string; // yyyy-mm-dd
   time_slot: string;
@@ -75,10 +68,12 @@ export default function AddAppointmentWithSidebar() {
             <div className="max-w-5xl w-full mx-auto">
               <Card className="overflow-hidden shadow-lg border">
                 <CardHeader className="bg-primary/80 text-primary-foreground p-6">
-                  <CardTitle className="text-2xl font-bold">Schedule Vet Appointment</CardTitle>
+                  <CardTitle className="text-2xl font-bold">
+                    Schedule Vet Appointment
+                  </CardTitle>
                   <p className="text-primary-foreground/80 text-sm mt-1">
-                    Use this form to schedule an appointment between farmer/cattle and a vet.
-                    Fields with * are required.
+                    Fill the cards step-by-step to schedule an appointment. Fields with * are
+                    required.
                   </p>
                 </CardHeader>
 
@@ -94,7 +89,7 @@ export default function AddAppointmentWithSidebar() {
   );
 }
 
-/** Form component */
+/** Form component as multi-step cards */
 function AddAppointmentFormInline() {
   const [form, setForm] = useState<Partial<AppointmentCreatePayload>>({
     farmer_name: "",
@@ -112,8 +107,27 @@ function AddAppointmentFormInline() {
 
   const [loading, setLoading] = useState(false);
   const [created, setCreated] = useState<AppointmentResponse | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [direction, setDirection] = useState<1 | -1>(1); // for flipper motion
 
-  // helpers to read stored ids (same approach as your cattle form)
+  const steps = ["Farmer & Cattle", "Symptoms & Schedule"];
+
+  // 🔒 today's date string (yyyy-mm-dd) for validation + input min
+  const todayStr = React.useMemo(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  const isPastDate = (dateStr: string) => {
+    if (!dateStr) return false;
+    // string compare is safe for yyyy-mm-dd
+    return dateStr < todayStr;
+  };
+
+  // helper to read stored owner id (kept)
   const getStoredOwnerId = (): string | null => {
     try {
       const userJson = localStorage.getItem("user");
@@ -134,24 +148,9 @@ function AddAppointmentFormInline() {
     );
   };
 
-  const getStoredVetId = (): string | null => {
-    try {
-      const userJson = localStorage.getItem("user");
-      if (userJson) {
-        const parsed = JSON.parse(userJson);
-        if (parsed?.vet_id) return parsed.vet_id;
-        if (parsed?.vetId) return parsed.vetId;
-      }
-    } catch (err) {
-      // ignore
-    }
-    return localStorage.getItem("vet_id") || localStorage.getItem("vetId") || null;
-  };
-
   useEffect(() => {
     const owner = getStoredOwnerId();
-    const vet = getStoredVetId();
-    setForm((p) => ({ ...p, owner_id: owner ?? undefined, vet_id: vet ?? undefined }));
+    setForm((p) => ({ ...p, owner_id: owner ?? undefined }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -159,13 +158,37 @@ function AddAppointmentFormInline() {
     setForm((p) => ({ ...p, [key]: value }));
   };
 
+  // Overall validate (for final submit)
   const validate = (): string | null => {
     if (!form.symptoms || form.symptoms.trim() === "") return "Please describe the symptoms.";
     if (!form.appointment_date) return "Please choose an appointment date.";
+    if (form.appointment_date && isPastDate(form.appointment_date))
+      return "Appointment date cannot be in the past.";
     if (!form.time_slot || form.time_slot.trim() === "") return "Please enter a time slot.";
-    if (!form.vet_id) return "Vet ID is required (please login or provide a vet id).";
-    if (!form.owner_id && !form.inaph_id) return "Provide either Owner ID (logged-in) or Farmer INAPH ID.";
-    if (!form.cattle_tag_id && !form.cattle_id) return "Provide cattle tag id (or cattle id).";
+    // vet_id is optional now
+    if (!form.owner_id && !form.inaph_id)
+      return "Provide either Owner ID (logged-in) or Farmer INAPH ID.";
+    if (!form.cattle_tag_id && !form.cattle_id)
+      return "Provide cattle tag id (or cattle id).";
+    return null;
+  };
+
+  // Per-step validation (for Next)
+  const validateStep = (step: number): string | null => {
+    if (step === 0) {
+      if (!form.cattle_tag_id || form.cattle_tag_id.trim() === "") {
+        return "Please provide the cattle tag ID.";
+      }
+    }
+    if (step === 1) {
+      if (!form.symptoms || form.symptoms.trim() === "")
+        return "Please describe the symptoms.";
+      if (!form.appointment_date) return "Please choose an appointment date.";
+      if (form.appointment_date && isPastDate(form.appointment_date))
+        return "Appointment date cannot be in the past.";
+      if (!form.time_slot || form.time_slot.trim() === "")
+        return "Please enter a time slot.";
+    }
     return null;
   };
 
@@ -183,6 +206,23 @@ function AddAppointmentFormInline() {
       owner_id: keep?.owner_id ?? form.owner_id,
       vet_id: keep?.vet_id ?? form.vet_id,
     });
+    setCurrentStep(0);
+    setDirection(1);
+  };
+
+  const handleNext = () => {
+    const err = validateStep(currentStep);
+    if (err) {
+      alert(err);
+      return;
+    }
+    setDirection(1);
+    setCurrentStep((s) => Math.min(s + 1, steps.length - 1));
+  };
+
+  const handleBack = () => {
+    setDirection(-1);
+    setCurrentStep((s) => Math.max(s - 1, 0));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -198,6 +238,7 @@ function AddAppointmentFormInline() {
       }
 
       const payload: any = {
+        // include vet_id only if user provided it manually
         vet_id: form.vet_id,
         symptoms: form.symptoms,
         appointment_date: form.appointment_date,
@@ -214,7 +255,7 @@ function AddAppointmentFormInline() {
       if (form.cattle_breed) payload.cattle_breed = form.cattle_breed;
 
       // remove undefined
-      Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+      Object.keys(payload).forEach((k) => (payload[k] === undefined) && delete payload[k]);
 
       const res = await fetch(
         "http://127.0.0.1:8000/api/vet/appointments/appointments",
@@ -222,7 +263,6 @@ function AddAppointmentFormInline() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            // Add Authorization header here if needed, e.g. `Authorization: Bearer ${token}`
           },
           body: JSON.stringify(payload),
         }
@@ -234,12 +274,15 @@ function AddAppointmentFormInline() {
         throw new Error(message);
       }
 
-      // show returned appointment
       setCreated(data as AppointmentResponse);
-      alert(`✅ Appointment created${data?.appointment_code ? ` — Code: ${data.appointment_code}` : ""}`);
+      alert(
+        `✅ Appointment created${
+          data?.appointment_code ? ` — Code: ${data.appointment_code}` : ""
+        }`
+      );
 
-      // Reset form but retain owner and vet from localStorage for convenience
-      resetForm({ owner_id: form.owner_id, vet_id: form.vet_id });
+      // Reset form but retain owner from localStorage for convenience
+      resetForm({ owner_id: form.owner_id });
     } catch (err: any) {
       console.error("Error creating appointment:", err);
       alert(`Error: ${err?.message || "Something went wrong"}`);
@@ -253,8 +296,53 @@ function AddAppointmentFormInline() {
     visible: { opacity: 1, y: 0 },
   } as any;
 
+  // 🔁 Flipper card variants
+  const cardVariants = {
+    enter: (dir: number) => ({
+      opacity: 0,
+      rotateY: dir > 0 ? 90 : -90,
+      x: dir > 0 ? 40 : -40,
+    }),
+    center: {
+      opacity: 1,
+      rotateY: 0,
+      x: 0,
+      transition: { type: "spring", stiffness: 260, damping: 24 },
+    },
+    exit: (dir: number) => ({
+      opacity: 0,
+      rotateY: dir > 0 ? -90 : 90,
+      x: dir > 0 ? -40 : 40,
+      transition: { duration: 0.2 },
+    }),
+  };
+
   return (
     <div>
+      {/* Step indicator */}
+      <div className="mb-6 flex items-center justify-between text-sm">
+        <div className="flex gap-2">
+          {steps.map((label, idx) => (
+            <div
+              key={idx}
+              className={`flex items-center gap-2 px-3 py-1 rounded-full border text-xs ${
+                idx === currentStep
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-muted text-muted-foreground border-muted"
+              }`}
+            >
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border bg-background text-[10px]">
+                {idx + 1}
+              </span>
+              <span>{label}</span>
+            </div>
+          ))}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Step {currentStep + 1} of {steps.length}
+        </div>
+      </div>
+
       <motion.form
         onSubmit={handleSubmit}
         variants={fadeUp}
@@ -263,146 +351,162 @@ function AddAppointmentFormInline() {
         transition={{ staggerChildren: 0.03 }}
         className="space-y-6"
       >
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label>Farmer Name</Label>
-            <Input
-              value={form.farmer_name ?? ""}
-              onChange={(e: any) => handleChange("farmer_name", e.target.value)}
-              placeholder="Farmer full name (optional)"
-              className="h-11"
-            />
-          </div>
+        {/* Wrapper with perspective for 3D flip */}
+        <div className="relative" style={{ perspective: 1000 }}>
+          <AnimatePresence mode="wait" custom={direction}>
+            {/* STEP 1: Farmer & Cattle */}
+            {currentStep === 0 && (
+              <motion.div
+                key="step-1"
+                custom={direction}
+                variants={cardVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className="grid md:grid-cols-2 gap-6"
+                style={{ transformStyle: "preserve-3d" }}
+              >
+                <div className="space-y-2">
+                  <Label>Farmer Name</Label>
+                  <Input
+                    value={form.farmer_name ?? ""}
+                    onChange={(e: any) =>
+                      handleChange("farmer_name", e.target.value)
+                    }
+                    placeholder="Farmer full name (optional)"
+                    className="h-11"
+                  />
+                </div>
 
-          <div className="space-y-2">
-            <Label>Farmer INAPH ID</Label>
-            <Input
-              value={form.inaph_id ?? ""}
-              onChange={(e: any) => handleChange("inaph_id", e.target.value)}
-              placeholder="INAPH-FXXXX (optional if owner_id present)"
-              className="h-11"
-            />
-          </div>
+                <div className="space-y-2">
+                  <Label>Farmer INAPH ID</Label>
+                  <Input
+                    value={form.inaph_id ?? ""}
+                    onChange={(e: any) =>
+                      handleChange("inaph_id", e.target.value)
+                    }
+                    placeholder="INAPH-FXXXX (optional if owner_id present)"
+                    className="h-11"
+                  />
+                </div>
 
-          <div className="space-y-2">
-            <Label>Cattle Tag ID *</Label>
-            <Input
-              value={form.cattle_tag_id ?? ""}
-              onChange={(e: any) => handleChange("cattle_tag_id", e.target.value)}
-              placeholder="Tag id of the cattle"
-              required
-              className="h-11"
-            />
-          </div>
+                <div className="space-y-2">
+                  <Label>Cattle Tag ID *</Label>
+                  <Input
+                    value={form.cattle_tag_id ?? ""}
+                    onChange={(e: any) =>
+                      handleChange("cattle_tag_id", e.target.value)
+                    }
+                    placeholder="Tag id of the cattle"
+                    required
+                    className="h-11"
+                  />
+                </div>
 
-          <div className="space-y-2">
-            <Label>Cattle Breed (optional)</Label>
-            <Input
-              value={form.cattle_breed ?? ""}
-              onChange={(e: any) => handleChange("cattle_breed", e.target.value)}
-              placeholder="e.g. Gir, Sahiwal"
-              className="h-11"
-            />
-          </div>
-
-          <div className="space-y-2 md:col-span-2">
-            <Label>Symptoms *</Label>
-            <Input
-              value={form.symptoms ?? ""}
-              onChange={(e: any) => handleChange("symptoms", e.target.value)}
-              placeholder="Describe symptoms"
-              required
-              className="h-11"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Appointment Date *</Label>
-            <Input
-              type="date"
-              value={form.appointment_date ?? ""}
-              onChange={(e: any) => handleChange("appointment_date", e.target.value)}
-              required
-              className="h-11"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Time Slot *</Label>
-            <Input
-              value={form.time_slot ?? ""}
-              onChange={(e: any) => handleChange("time_slot", e.target.value)}
-              placeholder="e.g. 10:00-11:00"
-              required
-              className="h-11"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Status</Label>
-            <Select
-              value={form.status ?? "Pending"}
-              onValueChange={(val: any) => handleChange("status", val)}
-            >
-              <SelectTrigger className="h-11">
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Approved">Approved</SelectItem>
-                <SelectItem value="Completed">Completed</SelectItem>
-                <SelectItem value="Cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="space-y-2 md:col-span-2">
-            <Label>Remarks (optional)</Label>
-            <Input
-              value={form.remarks ?? ""}
-              onChange={(e: any) => handleChange("remarks", e.target.value)}
-              placeholder="Any notes for the vet or farmer"
-              className="h-11"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Vet ID *</Label>
-            <Input
-              value={form.vet_id ?? ""}
-              onChange={(e: any) => handleChange("vet_id", e.target.value)}
-              placeholder="Vet UUID or will be filled from login"
-              className="h-11"
-            />
-            <p className="text-xs text-muted-foreground">
-              Vet ID is required by the backend create resolver. The form attempts to read it from localStorage key <code>vet_id</code>.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Owner ID (optional)</Label>
-            <Input
-              value={form.owner_id ?? ""}
-              onChange={(e: any) => handleChange("owner_id", e.target.value)}
-              placeholder="Owner UUID (used instead of inaph_id when present)"
-              className="h-11"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center">
-          <Button type="submit" className="w-full h-12 text-lg" disabled={loading}>
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <Spinner size={20} />
-                <span>Scheduling...</span>
-              </span>
-            ) : (
-              "Schedule Appointment"
+                <div className="space-y-2">
+                  <Label>Cattle Breed (optional)</Label>
+                  <Input
+                    value={form.cattle_breed ?? ""}
+                    onChange={(e: any) =>
+                      handleChange("cattle_breed", e.target.value)
+                    }
+                    placeholder="e.g. Gir, Sahiwal"
+                    className="h-11"
+                  />
+                </div>
+              </motion.div>
             )}
+
+            {/* STEP 2: Symptoms & Schedule */}
+            {currentStep === 1 && (
+              <motion.div
+                key="step-2"
+                custom={direction}
+                variants={cardVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className="grid md:grid-cols-2 gap-6"
+                style={{ transformStyle: "preserve-3d" }}
+              >
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Symptoms *</Label>
+                  <Input
+                    value={form.symptoms ?? ""}
+                    onChange={(e: any) =>
+                      handleChange("symptoms", e.target.value)
+                    }
+                    placeholder="Describe symptoms"
+                    required
+                    className="h-11"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Appointment Date *</Label>
+                  <Input
+                    type="date"
+                    value={form.appointment_date ?? ""}
+                    onChange={(e: any) =>
+                      handleChange("appointment_date", e.target.value)
+                    }
+                    required
+                    className="h-11"
+                    min={todayStr} // 🔒 block past dates in UI
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Time Slot *</Label>
+                  <Input
+                    value={form.time_slot ?? ""}
+                    onChange={(e: any) =>
+                      handleChange("time_slot", e.target.value)
+                    }
+                    placeholder="e.g. 10:00-11:00"
+                    required
+                    className="h-11"
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Navigation buttons */}
+        <div className="flex items-center justify-between pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleBack}
+            disabled={currentStep === 0}
+          >
+            Back
           </Button>
+
+          {currentStep < steps.length - 1 ? (
+            <Button
+              type="button"
+              onClick={handleNext}
+            >
+              Next
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              className="min-w-[180px]"
+              disabled={loading}
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Spinner size={20} />
+                  <span>Scheduling...</span>
+                </span>
+              ) : (
+                "Schedule Appointment"
+              )}
+            </Button>
+          )}
         </div>
       </motion.form>
 
@@ -420,14 +524,35 @@ function AddAppointmentFormInline() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 gap-2 text-sm">
-                <div><strong>Code:</strong> {created.appointment_code ?? "—"}</div>
-                <div><strong>Farmer:</strong> {created.farmer_name ?? created.inaph_id ?? "—"}</div>
-                <div><strong>Cattle:</strong> {created.cattle_tag_id ?? "—"} {created.cattle_breed ? `(${created.cattle_breed})` : ""}</div>
-                <div><strong>Date:</strong> {created.appointment_date}</div>
-                <div><strong>Time:</strong> {created.time_slot}</div>
-                <div><strong>Status:</strong> {created.status}</div>
-                <div><strong>Remarks:</strong> {created.remarks ?? "—"}</div>
-                <div><strong>Created at:</strong> {created.created_at ?? "—"}</div>
+                <div>
+                  <strong>Code:</strong>{" "}
+                  {created.appointment_code ?? "—"}
+                </div>
+                <div>
+                  <strong>Farmer:</strong>{" "}
+                  {created.farmer_name ?? created.inaph_id ?? "—"}
+                </div>
+                <div>
+                  <strong>Cattle:</strong>{" "}
+                  {created.cattle_tag_id ?? "—"}{" "}
+                  {created.cattle_breed ? `(${created.cattle_breed})` : ""}
+                </div>
+                <div>
+                  <strong>Date:</strong> {created.appointment_date}
+                </div>
+                <div>
+                  <strong>Time:</strong> {created.time_slot}
+                </div>
+                <div>
+                  <strong>Status:</strong> {created.status}
+                </div>
+                <div>
+                  <strong>Remarks:</strong> {created.remarks ?? "—"}
+                </div>
+                <div>
+                  <strong>Created at:</strong>{" "}
+                  {created.created_at ?? "—"}
+                </div>
               </div>
             </CardContent>
           </Card>

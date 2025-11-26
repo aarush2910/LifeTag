@@ -1,89 +1,148 @@
-import { Link, useNavigate } from 'react-router-dom'
-import { Button } from '../components/ui/button'
-import Spinner from '../components/ui/spinner'
-import { Input } from '../components/ui/input'
-import { Label } from '../components/ui/label'
-import { SelectNative } from '../components/ui/select-native'
-import { useState } from 'react'
+// src/Page/Auth/LoginPage.tsx
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "../components/ui/button";
+import Spinner from "../components/ui/spinner";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { SelectNative } from "../components/ui/select-native";
+import { useState } from "react";
+
+/**
+ * LoginPage
+ *
+ * - Sends credentials to POST /api/auth/login
+ * - On success: stores access_token, role, user_id (and aliases), identifier keys
+ * - These localStorage keys are later consumed by src/lib/api.ts (apiFetch)
+ *   to populate Authorization and x-owner-id / x-inaph-id headers automatically.
+ */
 
 export default function LoginPage() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
-  const [role, setRole] = useState("farmer")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+  const [role, setRole] = useState("farmer");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // Login fields
-  const [faadhar, setFaadhar] = useState("")
-  const [vemail, setVemail] = useState("")
-  const [semail, setSemail] = useState("")
-  const [password, setPassword] = useState("")
+  const [faadhar, setFaadhar] = useState("");
+  const [vemail, setVemail] = useState("");
+  const [semail, setSemail] = useState("");
+  const [password, setPassword] = useState("");
+
+  // API base (optional env)
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setLoading(true)
-    setError("")
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
-    // Aadhaar validation
+    // Aadhaar validation for farmer
     if (role === "farmer") {
-      const cleanAadhar = faadhar.replace(/\s/g, '')
+      const cleanAadhar = faadhar.replace(/\s/g, "");
       if (!/^\d{12}$/.test(cleanAadhar)) {
-        setError("Please enter a valid 12-digit Aadhaar number")
-        setLoading(false)
-        return
+        setError("Please enter a valid 12-digit Aadhaar number");
+        setLoading(false);
+        return;
       }
     }
 
-    // Build request payload expected by backend
-    let identifier = ""
-    if (role === "farmer") {
-      identifier = faadhar.replace(/\s/g, '')
-    } else if (role === "vet") {
-      identifier = vemail
-    } else if (role === "shelter") {
-      identifier = semail
-    }
+    // Build identifier
+    let identifier = "";
+    if (role === "farmer") identifier = faadhar.replace(/\s/g, "");
+    else if (role === "vet") identifier = vemail.trim();
+    else if (role === "shelter") identifier = semail.trim();
 
     const requestData = {
       role,
       password,
-      identifier
-    }
+      identifier,
+    };
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/auth/login", {
+      // NOTE: We use direct fetch for login (no token yet). Later API calls should use src/lib/api.ts apiFetch.
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestData),
-      })
+      });
 
-      const data = await res.json()
-      console.log('Login response status:', res.status, 'body:', data);
+      const data = await res.json().catch(() => ({}));
+      console.log("Login response status:", res.status, "body:", data);
 
       if (!res.ok) {
-        setError(data.error || "Invalid Credentials")
-      } else {
-        // save full response for other pages
-        localStorage.setItem('user', JSON.stringify(data))
-
-        // ALSO save the farmer/user id separately so other pages can read it easily
-        if (data.user_id) {
-          localStorage.setItem('farmerId', data.user_id)
-          localStorage.setItem('user_id', data.user_id)
-        }
-
-        console.log('Login success, navigating to dashboard', data)
-        navigate("/dashboard", { replace: true })
-        setTimeout(() => window.location.reload(), 100)
+        // backend sometimes returns detail or message
+        setError(data.detail || data.message || data.error || "Invalid Credentials");
+        setLoading(false);
+        return;
       }
 
+      // Successful login — store token + user info
+      try {
+        // 1) Token (JWT) — store under both keys for compatibility
+        if (data.access_token) {
+          localStorage.setItem("access_token", data.access_token);
+          localStorage.setItem("token", data.access_token);
+        }
+
+        // 2) Store full response for convenience (may include extra fields)
+        localStorage.setItem("user", JSON.stringify(data));
+
+        // 3) Role — important so apiFetch can attach role-aware headers
+        const resolvedRole = (data.role || role || "farmer").toString().toLowerCase();
+        localStorage.setItem("role", resolvedRole);
+
+        // 4) user_id (primary id from backend)
+        // Backend returns user_id (string) in Token response -> save it
+        if (data.user_id) {
+          localStorage.setItem("user_id", data.user_id);
+          // keep backward compatibility aliases
+          if (resolvedRole === "farmer") localStorage.setItem("farmerId", data.user_id);
+          if (resolvedRole === "vet") localStorage.setItem("vet_id", data.user_id);
+          if (resolvedRole === "shelter") localStorage.setItem("shelter_id", data.user_id);
+        }
+
+        // 5) Some backends may include inaph_id in login response — store it if present
+        if ((data as any).inaph_id) {
+          localStorage.setItem("inaph_id", (data as any).inaph_id);
+        }
+
+        // 6) Display name & role (optional)
+        if (data.user_name) localStorage.setItem("user_name", data.user_name);
+
+        // 7) Save identifier key (so FarmerAccountInfo can find it)
+        // Prefer Aadhaar (if farmer)
+        if (resolvedRole === "farmer") {
+          if (identifier) {
+            localStorage.setItem("identifier", identifier);
+            localStorage.setItem("faadhar", identifier);
+          }
+        } else if (resolvedRole === "vet") {
+          if (identifier) {
+            localStorage.setItem("identifier", identifier);
+            localStorage.setItem("vemail", identifier);
+          }
+        } else if (resolvedRole === "shelter") {
+          if (identifier) {
+            localStorage.setItem("identifier", identifier);
+            localStorage.setItem("semail", identifier);
+          }
+        }
+      } catch (saveErr) {
+        console.warn("Warning saving login info to localStorage:", saveErr);
+      }
+
+      // Redirect to dashboard
+      navigate("/dashboard", { replace: true });
+      // slight delay to allow storing before reload (optional)
+      setTimeout(() => window.location.reload(), 150);
     } catch (err) {
-      console.error(err)
-      setError("Network error")
+      console.error("Network/login error:", err);
+      setError("Network error");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const renderLoginField = () => {
     if (role === "farmer") {
@@ -101,52 +160,34 @@ export default function LoginPage() {
             placeholder="XXXX XXXX XXXX"
             value={faadhar}
             onChange={(e) => {
-              let v = e.target.value.replace(/\D/g, '').slice(0, 12)
-              v = v.replace(/(\d{4})(?=\d)/g, '$1 ')
-              setFaadhar(v)
+              let v = e.target.value.replace(/\D/g, "").slice(0, 12);
+              v = v.replace(/(\d{4})(?=\d)/g, "$1 ");
+              setFaadhar(v);
             }}
           />
           <p className="text-xs text-zinc-500 dark:text-zinc-400">Enter your 12-digit Aadhaar number</p>
         </div>
-      )
+      );
     } else if (role === "vet") {
       return (
         <div className="space-y-2">
           <Label htmlFor="vemail" className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
             Email Address *
           </Label>
-          <Input
-            type="email"
-            required
-            id="vemail"
-            autoComplete="off"
-            className="h-11"
-            placeholder="you@clinic.com"
-            value={vemail}
-            onChange={(e) => setVemail(e.target.value)}
-          />
+          <Input type="email" required id="vemail" autoComplete="off" className="h-11" placeholder="you@clinic.com" value={vemail} onChange={(e) => setVemail(e.target.value)} />
         </div>
-      )
+      );
     } else if (role === "shelter") {
       return (
         <div className="space-y-2">
           <Label htmlFor="semail" className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
             Email Address *
           </Label>
-          <Input
-            type="email"
-            required
-            id="semail"
-            autoComplete="off"
-            className="h-11"
-            placeholder="shelter@example.com"
-            value={semail}
-            onChange={(e) => setSemail(e.target.value)}
-          />
+          <Input type="email" required id="semail" autoComplete="off" className="h-11" placeholder="shelter@example.com" value={semail} onChange={(e) => setSemail(e.target.value)} />
         </div>
-      )
+      );
     }
-  }
+  };
 
   return (
     <section className="flex min-h-screen bg-gradient-to-br from-zinc-50 via-zinc-100 to-zinc-50 px-4 py-16 md:py-24 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
@@ -202,16 +243,7 @@ export default function LoginPage() {
                   <Link to="/forget">Forgot Password?</Link>
                 </Button>
               </div>
-              <Input
-                type="password"
-                required
-                id="pwd"
-                autoComplete="new-password"
-                className="h-11"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <Input type="password" required id="pwd" autoComplete="new-password" className="h-11" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
 
             {/* Submit Button */}
@@ -239,5 +271,5 @@ export default function LoginPage() {
         </div>
       </form>
     </section>
-  )
+  );
 }

@@ -21,6 +21,8 @@ import Retirement_request from "./Page/Logics/Retirement_request"
 import Shelter_Dashboard from "./Page/Dashboard/Shelter_Dashboard"
 import VetLogin from "./Page/VetLogin"
 import VetCreatePassword from "./Page/VetCreatePassword"
+import ShelterLogin from "./Page/ShelterLogin"
+import ShelterSignup from "./Page/ShelterSignup"
 
 
 
@@ -45,6 +47,8 @@ const App = () => {
         <Route path="/shelter_dashboard/:nested" element={<Shelter_Dashboard/>} />
         <Route path="/vet/login" element={<VetLogin />} />
       <Route path="/vet/create-password" element={<VetCreatePassword />} />
+      <Route path="/shelter/login" element={<ShelterLogin />} />
+        <Route path="/shelter/signup" element={<ShelterSignup />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Farmer_Dashboard />} />

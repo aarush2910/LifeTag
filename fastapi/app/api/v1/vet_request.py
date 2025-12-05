@@ -1,7 +1,6 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from uuid import UUID
 from datetime import date
-from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
 from sqlalchemy import select, and_, func, or_
 from sqlalchemy.orm import selectinload
@@ -17,8 +16,7 @@ from app.services.appointment_helpers import (
     resolve_vet,
 )
 from app.schemas.vet import VetCard
-from app.schemas.vet_appointment import (
-    AppointmentCreate, 
+from app.schemas.vet_appointment import ( 
     AppointmentUpdate,
     AppointmentResponse,
     StatusEnum as StatusEnumSchema,
@@ -58,6 +56,8 @@ async def list_vets(
             short_address=short_addr,
         ))
     return cards
+
+
 
 
 # Create appointment (accepts owner_id/cattle_id/vet_id in JSON body)
@@ -103,6 +103,8 @@ async def create_appointment(payload: AppointmentCreateWithIds, db: AsyncSession
     res = await db.execute(stmt)
     appt = res.scalars().first()
     return appointment_to_response(appt)
+
+
 
 
 # List appointments (paginated with total)
@@ -176,6 +178,7 @@ async def list_appointments(
 
 
 
+
 # Update appointment (status and/or remarks)
 @router.put("/{appointment_id}", response_model=AppointmentResponse)
 async def update_appointment(appointment_id: UUID, payload: AppointmentUpdate, db: AsyncSession = Depends(get_db)):
@@ -199,6 +202,7 @@ async def update_appointment(appointment_id: UUID, payload: AppointmentUpdate, d
     res = await db.execute(stmt)
     appt = res.scalars().first()
     return appointment_to_response(appt)
+
 
 
 

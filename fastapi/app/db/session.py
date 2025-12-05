@@ -1,24 +1,43 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.pool import NullPool
 from app.core.config import settings
-import ssl, os
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 
 
-CA_CERT_PATH = os.path.join(os.path.dirname(__file__), "../core/ca.pem")
+raw_db_url = str(settings.DATABASE_URL)
+# Ensure asyncpg dialect is used when a plain postgresql:// URL is supplied
+if raw_db_url.startswith("postgresql://") and "+asyncpg" not in raw_db_url:
+    raw_db_url = raw_db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-ssl_context = ssl.create_default_context(cafile=CA_CERT_PATH)
-ssl_context.check_hostname = True
-ssl_context.verify_mode = ssl.CERT_REQUIRED
+parts = urlsplit(raw_db_url)
+query_kv = dict(parse_qsl(parts.query or ""))
+connect_args = {
+    "server_settings": {"search_path": "public"},
+}
 
+# If the URL contains sslmode or channel_binding, remove them from the URL
+# and set an SSL/TLS connect argument for asyncpg. asyncpg expects an
+# `ssl` parameter (SSLContext or True) rather than `sslmode`.
+ssl_needed = False
+if "sslmode" in query_kv or "channel_binding" in query_kv:
+    ssl_needed = True
+    # remove from query
+    query_kv.pop("sslmode", None)
+    query_kv.pop("channel_binding", None)
+
+if ssl_needed:
+    connect_args["ssl"] = True
+
+new_query = urlencode(query_kv)
+parts = parts._replace(query=new_query)
+db_url = urlunsplit(parts)
 
 engine = create_async_engine(
-    str(settings.DATABASE_URL),
+    db_url,
     echo=settings.DEBUG,
     pool_pre_ping=True,
-    connect_args={"ssl": ssl_context,
-                  "server_settings":{"search_path":"public"}
-                  },  
-    
+    poolclass=NullPool,
+    connect_args=connect_args,
 )
 
 AsyncSessionLocal = async_sessionmaker(

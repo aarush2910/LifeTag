@@ -1,4 +1,5 @@
 from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel , ConfigDict
 from typing import Optional
 from datetime import date
 from uuid import UUID
@@ -20,4 +21,4 @@ class VetEventCreate(VetEventBase):
 class VetEventResponse(VetEventBase):
     id: UUID
 
-    model_config = ConfigDict(from_attributes=True)  # Pydantic v2 style
+    model_config = ConfigDict(from_attributes=True)

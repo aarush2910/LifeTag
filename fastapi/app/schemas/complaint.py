@@ -1,4 +1,4 @@
-from pydantic import BaseModel,EmailStr,StringConstraints
+from pydantic import BaseModel,EmailStr,StringConstraints, ConfigDict
 from typing import Optional,Annotated
 from datetime import datetime
 
@@ -32,5 +32,4 @@ class CattleComplaintRead(BaseModel):
     status: str
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

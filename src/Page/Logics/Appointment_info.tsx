@@ -4,9 +4,9 @@ import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "..//../components/ui/sidebar";
+} from "../../components/ui/sidebar";
 import { AppSidebar } from "../../components/AppSidebar";
-import UserMenu from "../..//components/user-menu";
+import UserMenu from "../../components/user-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { items } from "../../menudata/SidebarMenuItem";
 
@@ -19,8 +19,8 @@ type AppointmentCreatePayload = {
   owner_id?: string;
   inaph_id?: string;
   cattle_tag_id?: string;
-  cattle_id?: string;
-  vet_id?: string; // now optional
+  cattle_id?: string; // optional, not coming from farmer-info
+  vet_id?: string;
   symptoms: string;
   appointment_date: string; // yyyy-mm-dd
   time_slot: string;
@@ -44,7 +44,29 @@ type AppointmentResponse = {
   created_at?: string | null;
 };
 
-/** Full page with sidebar + header + card */
+// Match Pydantic FarmerCattleSummary
+type CattleSummary = {
+  cattle_name?: string | null;
+  breed?: string | null;
+  cattle_tag_id?: string | null;  // we normalize into this
+  inaph_tag_id?: string | null;   // backend raw key
+};
+
+// Match Pydantic FarmerResponse
+type FarmerInfo = {
+  fid: string;
+  fname: string;
+  fphone?: string | null;
+  femail?: string | null;
+  faadhar?: string | null;
+  faddress?: string | null;
+  farmtype?: string | null;
+  inaph_id?: string | null;
+  cattles?: CattleSummary[] | null;
+};
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+
 export default function AddAppointmentWithSidebar() {
   return (
     <div className="w-full">
@@ -89,7 +111,6 @@ export default function AddAppointmentWithSidebar() {
   );
 }
 
-/** Form component as multi-step cards */
 function AddAppointmentFormInline() {
   const [form, setForm] = useState<Partial<AppointmentCreatePayload>>({
     farmer_name: "",
@@ -108,11 +129,14 @@ function AddAppointmentFormInline() {
   const [loading, setLoading] = useState(false);
   const [created, setCreated] = useState<AppointmentResponse | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
-  const [direction, setDirection] = useState<1 | -1>(1); // for flipper motion
+  const [direction, setDirection] = useState<1 | -1>(1);
+
+  const [farmerInfo, setFarmerInfo] = useState<FarmerInfo | null>(null);
+  const [farmerLoading, setFarmerLoading] = useState(false);
+  const [farmerFetchError, setFarmerFetchError] = useState<string | null>(null);
 
   const steps = ["Farmer & Cattle", "Symptoms & Schedule"];
 
-  // 🔒 today's date string (yyyy-mm-dd) for validation + input min
   const todayStr = React.useMemo(() => {
     const d = new Date();
     const year = d.getFullYear();
@@ -123,67 +147,172 @@ function AddAppointmentFormInline() {
 
   const isPastDate = (dateStr: string) => {
     if (!dateStr) return false;
-    // string compare is safe for yyyy-mm-dd
     return dateStr < todayStr;
   };
 
-  // helper to read stored owner id (kept)
-  const getStoredOwnerId = (): string | null => {
+  const getStoredUserInfo = () => {
+    let user: any = null;
     try {
-      const userJson = localStorage.getItem("user");
-      if (userJson) {
-        const parsed = JSON.parse(userJson);
-        if (parsed?.user_id) return parsed.user_id;
-        if (parsed?.userId) return parsed.userId;
-      }
-    } catch (err) {
-      // ignore
+      const raw = localStorage.getItem("user");
+      if (raw) user = JSON.parse(raw);
+    } catch {
+      user = null;
     }
-    return (
-      localStorage.getItem("ownerId") ||
+
+    const owner_id =
+      (user && user.user_id) ||
       localStorage.getItem("farmerId") ||
-      localStorage.getItem("fid") ||
       localStorage.getItem("user_id") ||
-      null
-    );
+      null;
+
+    const farmer_name =
+      (user && (user.user_name || user.name)) ||
+      localStorage.getItem("user_name") ||
+      "";
+
+    const inaph_id =
+      (user && user.inaph_id) ||
+      localStorage.getItem("inaph_id") ||
+      "";
+
+    const vet_id = localStorage.getItem("vet_id") || undefined;
+
+    return { owner_id, farmer_name, inaph_id, vet_id };
+  };
+
+  const fetchFarmerInfo = async (identifier: string) => {
+    if (!identifier) return;
+    try {
+      setFarmerLoading(true);
+      setFarmerFetchError(null);
+
+      const token =
+        localStorage.getItem("access_token") ||
+        localStorage.getItem("token") ||
+        "";
+
+      const res = await fetch(
+        `${API_BASE}/api/auth/farmer-info?identifier=${encodeURIComponent(
+          identifier
+        )}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        }
+      );
+
+      const raw: any = await res.json().catch(() => null as any);
+
+      console.log("farmer-info raw response:", raw);
+
+      if (!res.ok) {
+        const message =
+          raw?.detail || raw?.message || "Failed to fetch farmer info";
+        throw new Error(message);
+      }
+
+      if (!raw) {
+        throw new Error("Empty response from farmer-info");
+      }
+
+      // normalize cattle list: guarantee cattle_tag_id
+      const normalizedCattles: CattleSummary[] = (raw.cattles || []).map(
+        (c: any) => {
+          // backend alias: inaph_tag_id -> cattle_tag_id (we want the alphanumeric tag)
+          const tag = c.cattle_tag_id ?? c.inaph_tag_id ?? null;
+          return {
+            cattle_name: c.cattle_name ?? c.name ?? null,
+            breed: c.breed ?? null,
+            cattle_tag_id: tag,
+            inaph_tag_id: c.inaph_tag_id ?? null,
+          };
+        }
+      );
+
+      const data: FarmerInfo = {
+        fid: raw.fid,
+        fname: raw.fname,
+        fphone: raw.fphone,
+        femail: raw.femail,
+        faadhar: raw.faadhar,
+        faddress: raw.faddress,
+        farmtype: raw.farmtype,
+        inaph_id: raw.inaph_id,
+        cattles: normalizedCattles,
+      };
+
+      console.log("normalized farmer-info:", data);
+
+      setFarmerInfo(data);
+
+      setForm((prev) => ({
+        ...prev,
+        farmer_name: prev.farmer_name || data.fname || prev.farmer_name,
+        inaph_id: data.inaph_id || prev.inaph_id,
+      }));
+    } catch (err: any) {
+      console.error("Error fetching farmer info:", err);
+      setFarmerInfo(null);
+      setFarmerFetchError(err?.message || "Could not fetch farmer info");
+    } finally {
+      setFarmerLoading(false);
+    }
   };
 
   useEffect(() => {
-    const owner = getStoredOwnerId();
-    setForm((p) => ({ ...p, owner_id: owner ?? undefined }));
+    const { owner_id, farmer_name, inaph_id, vet_id } = getStoredUserInfo();
+
+    setForm((prev) => ({
+      ...prev,
+      owner_id: owner_id ?? undefined,
+      vet_id: vet_id ?? prev.vet_id,
+      farmer_name: farmer_name || prev.farmer_name,
+      inaph_id: inaph_id || prev.inaph_id,
+    }));
+
+    if (inaph_id) {
+      fetchFarmerInfo(inaph_id);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleChange = (key: keyof AppointmentCreatePayload, value: any) => {
+  const handleChange = (
+    key: keyof AppointmentCreatePayload,
+    value: any
+  ) => {
     setForm((p) => ({ ...p, [key]: value }));
   };
 
-  // Overall validate (for final submit)
   const validate = (): string | null => {
-    if (!form.symptoms || form.symptoms.trim() === "") return "Please describe the symptoms.";
-    if (!form.appointment_date) return "Please choose an appointment date.";
+    if (!form.symptoms || form.symptoms.trim() === "")
+      return "Please describe the symptoms.";
+    if (!form.appointment_date)
+      return "Please choose an appointment date.";
     if (form.appointment_date && isPastDate(form.appointment_date))
       return "Appointment date cannot be in the past.";
-    if (!form.time_slot || form.time_slot.trim() === "") return "Please enter a time slot.";
-    // vet_id is optional now
+    if (!form.time_slot || form.time_slot.trim() === "")
+      return "Please enter a time slot.";
     if (!form.owner_id && !form.inaph_id)
       return "Provide either Owner ID (logged-in) or Farmer INAPH ID.";
     if (!form.cattle_tag_id && !form.cattle_id)
-      return "Provide cattle tag id (or cattle id).";
+      return "Please select a cattle (tag id or cattle id).";
     return null;
   };
 
-  // Per-step validation (for Next)
   const validateStep = (step: number): string | null => {
     if (step === 0) {
       if (!form.cattle_tag_id || form.cattle_tag_id.trim() === "") {
-        return "Please provide the cattle tag ID.";
+        return "Please select the cattle.";
       }
     }
     if (step === 1) {
       if (!form.symptoms || form.symptoms.trim() === "")
         return "Please describe the symptoms.";
-      if (!form.appointment_date) return "Please choose an appointment date.";
+      if (!form.appointment_date)
+        return "Please choose an appointment date.";
       if (form.appointment_date && isPastDate(form.appointment_date))
         return "Appointment date cannot be in the past.";
       if (!form.time_slot || form.time_slot.trim() === "")
@@ -193,9 +322,12 @@ function AddAppointmentFormInline() {
   };
 
   const resetForm = (keep?: Partial<AppointmentCreatePayload>) => {
+    const { owner_id, farmer_name, inaph_id, vet_id } =
+      getStoredUserInfo();
+
     setForm({
-      farmer_name: "",
-      inaph_id: "",
+      farmer_name: keep?.farmer_name ?? farmer_name ?? "",
+      inaph_id: keep?.inaph_id ?? inaph_id ?? "",
       cattle_tag_id: "",
       cattle_breed: "",
       symptoms: "",
@@ -203,11 +335,13 @@ function AddAppointmentFormInline() {
       time_slot: "",
       status: "Pending",
       remarks: "",
-      owner_id: keep?.owner_id ?? form.owner_id,
-      vet_id: keep?.vet_id ?? form.vet_id,
+      owner_id: keep?.owner_id ?? owner_id ?? undefined,
+      vet_id: keep?.vet_id ?? vet_id ?? undefined,
+      cattle_id: undefined,
     });
     setCurrentStep(0);
     setDirection(1);
+    // keep farmerInfo so dropdown stays available for subsequent appointments
   };
 
   const handleNext = () => {
@@ -230,6 +364,24 @@ function AddAppointmentFormInline() {
     setLoading(true);
     setCreated(null);
     try {
+      // Ensure owner_id & vet_id are filled (try to re-read from localStorage)
+      if (!form.owner_id) {
+        const raw = localStorage.getItem("user");
+        let storageOwner: string | null = null;
+        try {
+          if (raw) storageOwner = JSON.parse(raw).user_id;
+        } catch {}
+        storageOwner = storageOwner || localStorage.getItem("farmerId") || localStorage.getItem("user_id");
+        if (storageOwner) setForm((p) => ({ ...p, owner_id: storageOwner }));
+      }
+      if (!form.vet_id) {
+        const storageVet = localStorage.getItem("vet_id");
+        if (storageVet) setForm((p) => ({ ...p, vet_id: storageVet }));
+      }
+
+      // small delay to let setForm update (rare race) - optional, but safe
+      await new Promise((res) => setTimeout(res, 0));
+
       const err = validate();
       if (err) {
         alert(err);
@@ -238,15 +390,14 @@ function AddAppointmentFormInline() {
       }
 
       const payload: any = {
-        // include vet_id only if user provided it manually
         vet_id: form.vet_id,
+        owner_id: form.owner_id,
         symptoms: form.symptoms,
         appointment_date: form.appointment_date,
         time_slot: form.time_slot,
         status: form.status ?? "Pending",
       };
 
-      if (form.owner_id) payload.owner_id = form.owner_id;
       if (form.inaph_id) payload.inaph_id = form.inaph_id;
       if (form.cattle_tag_id) payload.cattle_tag_id = form.cattle_tag_id;
       if (form.cattle_id) payload.cattle_id = form.cattle_id;
@@ -254,15 +405,24 @@ function AddAppointmentFormInline() {
       if (form.farmer_name) payload.farmer_name = form.farmer_name;
       if (form.cattle_breed) payload.cattle_breed = form.cattle_breed;
 
-      // remove undefined
-      Object.keys(payload).forEach((k) => (payload[k] === undefined) && delete payload[k]);
+      // Remove undefined
+      Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+
+      // LOG the payload to inspect what frontend sends
+      console.log("Sending appointment payload:", payload);
+
+      const token =
+        localStorage.getItem("access_token") ||
+        localStorage.getItem("token") ||
+        "";
 
       const res = await fetch(
-        "http://127.0.0.1:8000/api/vet/appointments/appointments",
+        `${API_BASE}/api/vet/appointments/create-appointment`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           body: JSON.stringify(payload),
         }
@@ -270,7 +430,10 @@ function AddAppointmentFormInline() {
 
       const data = await res.json();
       if (!res.ok) {
-        const message = data?.detail || data?.message || "Failed to create appointment";
+        const message =
+          data?.detail ||
+          data?.message ||
+          "Failed to create appointment";
         throw new Error(message);
       }
 
@@ -281,8 +444,8 @@ function AddAppointmentFormInline() {
         }`
       );
 
-      // Reset form but retain owner from localStorage for convenience
-      resetForm({ owner_id: form.owner_id });
+      // Clear only form fields; keep farmerInfo (so dropdown persists)
+      resetForm();
     } catch (err: any) {
       console.error("Error creating appointment:", err);
       alert(`Error: ${err?.message || "Something went wrong"}`);
@@ -296,7 +459,6 @@ function AddAppointmentFormInline() {
     visible: { opacity: 1, y: 0 },
   } as any;
 
-  // 🔁 Flipper card variants
   const cardVariants = {
     enter: (dir: number) => ({
       opacity: 0,
@@ -351,7 +513,7 @@ function AddAppointmentFormInline() {
         transition={{ staggerChildren: 0.03 }}
         className="space-y-6"
       >
-        {/* Wrapper with perspective for 3D flip */}
+        {/* Card wrapper */}
         <div className="relative" style={{ perspective: 1000 }}>
           <AnimatePresence mode="wait" custom={direction}>
             {/* STEP 1: Farmer & Cattle */}
@@ -373,7 +535,7 @@ function AddAppointmentFormInline() {
                     onChange={(e: any) =>
                       handleChange("farmer_name", e.target.value)
                     }
-                    placeholder="Farmer full name (optional)"
+                    placeholder="Farmer full name"
                     className="h-11"
                   />
                 </div>
@@ -381,26 +543,79 @@ function AddAppointmentFormInline() {
                 <div className="space-y-2">
                   <Label>Farmer INAPH ID</Label>
                   <Input
+                    type="text"
                     value={form.inaph_id ?? ""}
                     onChange={(e: any) =>
                       handleChange("inaph_id", e.target.value)
                     }
-                    placeholder="INAPH-FXXXX (optional if owner_id present)"
-                    className="h-11"
+                    onBlur={() => {
+                      if (form.inaph_id) {
+                        fetchFarmerInfo(form.inaph_id);
+                      }
+                    }}
+                    placeholder="INAPH ID (e.g. INAPH-F0015)"
+                    className="h-11 flex-1"
                   />
+                  {farmerLoading && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Loading farmer & cattle info...
+                    </p>
+                  )}
+                  {farmerFetchError && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {farmerFetchError}
+                    </p>
+                  )}
                 </div>
 
+                {/* Cattle selection from dropdown */}
                 <div className="space-y-2">
                   <Label>Cattle Tag ID *</Label>
-                  <Input
-                    value={form.cattle_tag_id ?? ""}
-                    onChange={(e: any) =>
-                      handleChange("cattle_tag_id", e.target.value)
-                    }
-                    placeholder="Tag id of the cattle"
-                    required
-                    className="h-11"
-                  />
+                  {farmerInfo?.cattles && farmerInfo.cattles.length > 0 ? (
+                    <select
+                      className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      value={form.cattle_tag_id ?? ""}
+                      onChange={(e) => {
+                        const tag = e.target.value;
+                        const selected = farmerInfo.cattles?.find(
+                          (c) => c.cattle_tag_id === tag
+                        );
+                        setForm((prev) => ({
+                          ...prev,
+                          cattle_tag_id: tag,
+                          cattle_breed: selected?.breed ?? prev.cattle_breed,
+                        }));
+                      }}
+                      required
+                    >
+                      <option value="">Select cattle tag</option>
+                      {farmerInfo.cattles.map((c, index) => {
+                        const tag = c.cattle_tag_id || "";
+                        if (!tag) return null;
+                        return (
+                          <option key={`${tag}-${index}`} value={tag}>
+                            {tag}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  ) : (
+                    <Input
+                      type="text"
+                      value={form.cattle_tag_id ?? ""}
+                      onChange={(e: any) =>
+                        handleChange("cattle_tag_id", e.target.value)
+                      }
+                      placeholder="INAPH tag id of the cattle"
+                      required
+                      className="h-11"
+                    />
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {farmerInfo?.cattles && farmerInfo.cattles.length > 0
+                      ? "Select the alphanumeric cattle ID of the sick animal."
+                      : "No cattle list found yet. Enter tag ID manually or fill INAPH ID to load cattle list."}
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -452,7 +667,7 @@ function AddAppointmentFormInline() {
                     }
                     required
                     className="h-11"
-                    min={todayStr} // 🔒 block past dates in UI
+                    min={todayStr}
                   />
                 </div>
 
@@ -485,10 +700,7 @@ function AddAppointmentFormInline() {
           </Button>
 
           {currentStep < steps.length - 1 ? (
-            <Button
-              type="button"
-              onClick={handleNext}
-            >
+            <Button type="button" onClick={handleNext}>
               Next
             </Button>
           ) : (
@@ -547,7 +759,8 @@ function AddAppointmentFormInline() {
                   <strong>Status:</strong> {created.status}
                 </div>
                 <div>
-                  <strong>Remarks:</strong> {created.remarks ?? "—"}
+                  <strong>Remarks:</strong>{" "}
+                  {created.remarks ?? "—"}
                 </div>
                 <div>
                   <strong>Created at:</strong>{" "}

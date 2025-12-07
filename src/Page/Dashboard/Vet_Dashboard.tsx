@@ -2,37 +2,45 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "../../components/
 import { AppSidebar } from "../../components/AppSidebar";
 import { vetMenu } from "../../menudata/SidebarMenuItem";
 import Events from "./Vet/Events";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import VetHome from "./Vet/VetHome";
 import Health from "./Vet/Health";
+import { useEffect, useState } from "react";
 
 
 
 type UserType = {
-  user_name: string;
+  name: string;
   role: string;
-  user_id: string;
+  vet_id: string;
+  license_no: string;
 };
 
 export default function Vet_Dashboard() {
-    // const navigate = useNavigate();
-    // const [user, setUser] = useState<UserType | null>(null);
+    const navigate = useNavigate();
+    const [user, setUser] = useState<UserType | null>(null);
 
-    // useEffect(() => {
-    //     const userData = localStorage.getItem('user');
-    //     if (!userData) {
-    //         navigate('/login');
-    //     } else {
-    //         setUser(JSON.parse(userData));
-    //     }
-    // }, [navigate]);
+    useEffect(() => {
+        const userData = localStorage.getItem('user');
+        if (!userData) {
+            navigate('/login');
+        } else {
+            setUser(JSON.parse(userData));
+        }
+    }, [navigate]);
 
-    // if (!user) {
-    //     return <div>Loading...</div>;
-    // }
+    if (!user) {
+        return <div>Loading...</div>;
+    }
     const { nested } = useParams();
-  const user = { user_name: "Uno", role: "Vet", user_id: "989832" };
-
+  // const user = { user_name: "Uno", role: "Vet", user_id: "989832" };
+      //   role: "vet",
+      //   vet_id: data.vet_id ?? null,
+      //   license_no: licenseNo.trim(),
+      //   name: data.name ?? null,
+      //   token: data.access_token ?? null,
+      // };
+      console.log(user)
     let ContentComponent: React.ComponentType;
 
     if (!nested) {
@@ -54,7 +62,7 @@ export default function Vet_Dashboard() {
                         <div className="ml-auto pr-2 md:pr-0">
                             <div className="text-right">
                                 <h2 className="text-lg font-semibold text-foreground">
-                                    Welcome, {user.user_name}!
+                                    Welcome, {user.license_no}!
                                 </h2>
                                 <p className="text-sm italic text-muted-foreground capitalize">
                                     {user.role} Dashboard

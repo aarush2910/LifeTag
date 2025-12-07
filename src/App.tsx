@@ -42,10 +42,6 @@ const App = () => {
           <Route path="/dialog" element={<Dialog />} />
         </Route>
         <Route path="/Contact" element={<Contact />} />
-        <Route path="/vet_dashboard" element={<Vet_Dashboard/>} />
-        <Route path="/vet_dashboard/:nested" element={<Vet_Dashboard/>} />
-        <Route path="/shelter_dashboard" element={<Shelter_Dashboard/>} />
-        <Route path="/shelter_dashboard/:nested" element={<Shelter_Dashboard/>} />
         <Route path="/vet/login" element={<VetLogin />} />
       <Route path="/vet/create-password" element={<VetCreatePassword />} />
       <Route path="/shelter/login" element={<ShelterLogin />} />

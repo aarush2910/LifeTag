@@ -1,3 +1,4 @@
+// VetTable.tsx
 import { useId, useMemo, useRef, useState } from "react";
 import type {
   ColumnDef,
@@ -73,10 +74,10 @@ import {
   TableRow,
 } from "../components/ui/table";
 
-type Appointment = {
-  appointment_id: string;
+export type Appointment = {
+  appointment_id: string;      // map appointment_code → appointment_id
   farmer_name: string;
-  cattle_name: string;
+  cattle_name: string;         // map cattle_cid_short (or local_cattle_id)
   cattle_tag_id: string;
   inaph_id: string;
   cattle_breed?: string;
@@ -87,100 +88,12 @@ type Appointment = {
   remarks?: string;
 };
 
-// Updated Static Data
-const staticData: Appointment[] = [
-  {
-    appointment_id: "APT001",
-    farmer_name: "Ramesh Kumar",
-    cattle_name: "Bhuri",
-    cattle_tag_id: "TAG1001",
-    inaph_id: "INAPH001",
-    cattle_breed: "Gir",
-    symptoms: "Loss of appetite, fever",
-    appointment_date: "2025-11-01",
-    time_slot: "10:00 AM",
-    status: "Pending",
-    remarks: "Urgent case",
-  },
-  {
-    appointment_id: "APT002",
-    farmer_name: "Sita Devi",
-    cattle_name: "Kali",
-    cattle_tag_id: "TAG1002",
-    inaph_id: "INAPH002",
-    cattle_breed: "Sahiwal",
-    symptoms: "Lameness in left leg",
-    appointment_date: "2025-11-02",
-    time_slot: "02:00 PM",
-    status: "Accepted",
-    remarks: "Requires urgent checkup",
-  },
-  {
-    appointment_id: "APT003",
-    farmer_name: "Anil Patel",
-    cattle_name: "Gauri",
-    cattle_tag_id: "TAG1003",
-    inaph_id: "INAPH003",
-    cattle_breed: "Jersey",
-    symptoms: "Coughing and runny nose",
-    appointment_date: "2025-11-03",
-    time_slot: "09:00 AM",
-    status: "Completed",
-    remarks: "Recovered well",
-  },
-  {
-    appointment_id: "APT004",
-    farmer_name: "Priya Sharma",
-    cattle_name: "Lakshmi",
-    cattle_tag_id: "TAG1004",
-    inaph_id: "INAPH004",
-    symptoms: "Swollen udder",
-    appointment_date: "2025-11-05",
-    time_slot: "11:00 AM",
-    status: "Pending",
-  },
-  {
-    appointment_id: "APT005",
-    farmer_name: "Vikram Singh",
-    cattle_name: "Nandi",
-    cattle_tag_id: "TAG1005",
-    inaph_id: "INAPH005",
-    cattle_breed: "Holstein",
-    symptoms: "Decreased milk production",
-    appointment_date: "2025-11-06",
-    time_slot: "03:00 PM",
-    status: "Accepted",
-    remarks: "Follow-up required",
-  },
-  {
-    appointment_id: "APT006",
-    farmer_name: "Lakshmi Reddy",
-    cattle_name: "Surbhi",
-    cattle_tag_id: "TAG1006",
-    inaph_id: "INAPH006",
-    cattle_breed: "Red Sindhi",
-    symptoms: "Eye infection",
-    appointment_date: "2025-11-07",
-    time_slot: "10:00 AM",
-    status: "Pending",
-  },
-  {
-    appointment_id: "APT007",
-    farmer_name: "Mohan Lal",
-    cattle_name: "Rani",
-    cattle_tag_id: "TAG1007",
-    inaph_id: "INAPH007",
-    symptoms: "Skin rashes",
-    appointment_date: "2025-11-08",
-    time_slot: "01:00 PM",
-    status: "Completed",
-    remarks: "Treatment successful",
-  },
-];
-
-
 // Multi-column filter function
-const multiColumnFilterFn: FilterFn<Appointment> = (row, columnId, filterValue) => {
+const multiColumnFilterFn: FilterFn<Appointment> = (
+  row,
+  columnId,
+  filterValue
+) => {
   const searchableRowContent = `${row.original.farmer_name} ${row.original.cattle_tag_id}`.toLowerCase();
   const searchTerm = (filterValue ?? "").toLowerCase();
   return searchableRowContent.includes(searchTerm);
@@ -216,7 +129,7 @@ const columns: ColumnDef<Appointment>[] = [
     accessorKey: "inaph_id",
   },
   {
-    header: "Cattle Id",
+    header: "Cattle Tag ID",
     accessorKey: "cattle_tag_id",
   },
   {
@@ -278,7 +191,11 @@ const columns: ColumnDef<Appointment>[] = [
   },
 ];
 
-export default function VetTable() {
+type VetTableProps = {
+  data: Appointment[];
+};
+
+export default function VetTable({ data }: VetTableProps) {
   const id = useId();
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -294,8 +211,6 @@ export default function VetTable() {
       desc: false,
     },
   ]);
-
-  const [data] = useState<Appointment[]>(staticData);
 
   const table = useReactTable({
     data,
@@ -623,7 +538,7 @@ export default function VetTable() {
         </div>
 
         {/* Pagination buttons */}
-        <Pagination >
+        <Pagination>
           <PaginationContent>
             <PaginationItem>
               <Button

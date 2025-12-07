@@ -52,6 +52,10 @@ const App = () => {
         <Route path="/shelter/signup" element={<ShelterSignup />} />
 
         <Route element={<ProtectedRoute />}>
+        <Route path="/vet_dashboard" element={<Vet_Dashboard/>} />
+        <Route path="/vet_dashboard/:nested" element={<Vet_Dashboard/>} />
+        <Route path="/shelter_dashboard" element={<Shelter_Dashboard/>} />
+        <Route path="/shelter_dashboard/:nested" element={<Shelter_Dashboard/>} />
           <Route path="/dashboard" element={<Farmer_Dashboard />} />
           <Route path="/account-info" element={<Account_info />} />
           <Route path="/add_new_cattle" element={<Add_new_cattle />} />

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel , ConfigDict
 from typing import Optional
 from datetime import date
 
@@ -16,5 +16,4 @@ class VetEventCreate(VetEventBase):
 class VetEventResponse(VetEventBase):
     id: str
 
-    class Config:
-        from_attributes = True  # updated from orm_mode
+    model_config = ConfigDict(from_attributes=True)

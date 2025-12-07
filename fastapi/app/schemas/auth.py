@@ -1,7 +1,16 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr , ConfigDict, Field
 from typing import Optional , List
 from datetime import datetime
 from uuid import UUID
+
+
+class FarmerCattleSummary(BaseModel):
+    cattle_name: Optional[str] = None
+    breed: Optional[str] = None
+    # Map cattle_tag_id to the Cattle.inaph_tag_id attribute via alias.
+    cattle_tag_id: Optional[str] = Field(default=None, alias="inaph_tag_id")
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class FarmerCreate(BaseModel):
@@ -23,11 +32,10 @@ class FarmerResponse(BaseModel):
     faddress: Optional[str] = None
     farmtype: Optional[str] = None
     inaph_id: Optional[str] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    cattles: Optional[List[FarmerCattleSummary]] = None
+    
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 
@@ -64,9 +72,4 @@ class InaphLoginResponse(BaseModel):
     access_token: Optional[str] = None
     token_type: Optional[str] = None
 
-    class Config:
-        orm_mode = True
-
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

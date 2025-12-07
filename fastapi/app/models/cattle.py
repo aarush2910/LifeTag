@@ -28,7 +28,7 @@ class Cattle(Base):
     last_known_location: Mapped[str] = mapped_column(String(200), nullable=True)
 
     owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("farmers.fid"), nullable=False)
-    farmer = relationship("Farmer", backref="cattles")
+    farmer = relationship("Farmer", back_populates="cattles")
 
     # Additional fields
     weight: Mapped[float] = mapped_column(Float, nullable=True)

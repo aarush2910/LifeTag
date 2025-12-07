@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import timedelta
 
@@ -95,7 +96,9 @@ async def get_farmer_info(
     email_candidate = identifier.lower()
 
     farmer = await db.scalar(
-        select(Farmer).where(
+        select(Farmer)
+        .options(selectinload(Farmer.cattles))
+        .where(
             (Farmer.inaph_id == identifier)
             | (Farmer.femail == email_candidate)
             | (Farmer.fphone == norm_phone)

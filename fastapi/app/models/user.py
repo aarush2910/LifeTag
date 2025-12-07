@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Integer, DateTime, func, Index
 from datetime import datetime
 import uuid 
@@ -32,6 +32,11 @@ class Farmer(Base):
     farmtype: Mapped[str] = mapped_column(String(10), nullable=False)
     inaph_id: Mapped[str] = mapped_column(String(30), unique=True, nullable=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=True)
+
+    cattles = relationship(
+        "Cattle",
+        back_populates="farmer",
+    )
 
 
 

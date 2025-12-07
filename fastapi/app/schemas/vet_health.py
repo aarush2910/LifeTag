@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel , ConfigDict
 from datetime import date
 import uuid
 
@@ -17,5 +17,4 @@ class VetHealthRecordCreate(VetHealthRecordBase):
 class VetHealthRecordResponse(VetHealthRecordBase):
     health_record_id: uuid.UUID
 
-    class Config:
-        orm_mode = True
+    model_config =  ConfigDict(from_attributes=True)

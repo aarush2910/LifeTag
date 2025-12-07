@@ -22,6 +22,8 @@ import Retirement_request from "./Page/Logics/Retirement_request"
 import Shelter_Dashboard from "./Page/Dashboard/Shelter_Dashboard"
 import VetLogin from "./Page/VetLogin"
 import VetCreatePassword from "./Page/VetCreatePassword"
+import ShelterLogin from "./Page/ShelterLogin"
+import ShelterSignup from "./Page/ShelterSignup"
 
 
 
@@ -40,14 +42,16 @@ const App = () => {
           <Route path="/dialog" element={<Dialog />} />
         </Route>
         <Route path="/Contact" element={<Contact />} />
+        <Route path="/vet/login" element={<VetLogin />} />
+      <Route path="/vet/create-password" element={<VetCreatePassword />} />
+      <Route path="/shelter/login" element={<ShelterLogin />} />
+        <Route path="/shelter/signup" element={<ShelterSignup />} />
+
+        <Route element={<ProtectedRoute />}>
         <Route path="/vet_dashboard" element={<Vet_Dashboard/>} />
         <Route path="/vet_dashboard/:nested" element={<Vet_Dashboard/>} />
         <Route path="/shelter_dashboard" element={<Shelter_Dashboard/>} />
         <Route path="/shelter_dashboard/:nested" element={<Shelter_Dashboard/>} />
-        <Route path="/vet/login" element={<VetLogin />} />
-      <Route path="/vet/create-password" element={<VetCreatePassword />} />
-
-        <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Farmer_Dashboard />} />
           <Route path="/account-info" element={<Account_info />} />
           <Route path="/add_new_cattle" element={<Add_new_cattle />} />

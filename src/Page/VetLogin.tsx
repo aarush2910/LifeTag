@@ -27,10 +27,12 @@ export default function VetLogin() {
     try {
       // 1) Check if vet has created a password already
       const checkRes = await fetch(
-        `http://127.0.0.1:8000/api/auth/vet/check-password?license_no=${encodeURIComponent(
-          licenseNo.trim()
-        )}`
-      );
+        `http://127.0.0.1:8000/api/vet/vet/check-license`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ license: licenseNo.trim() }),
+      });
+
 
       if (!checkRes.ok) {
         // if check endpoint fails, show error
@@ -39,12 +41,13 @@ export default function VetLogin() {
       }
 
       const checkData = await checkRes.json();
-      if (!checkData.has_password) {
+      if (checkData.has_password) {
         // redirect to create password page (pass license via state)
         setMessage("You don't have a password yet. Redirecting to create one...");
-        setTimeout(() => {
-          navigate("/vet/create-password", { state: { license_no: licenseNo } });
-        }, 900);
+        // setTimeout(() => {
+          // navigate("/vet/create-password", { state: { license_no: licenseNo } });
+        // }, 900);
+        console.log(checkData)
         return;
       }
 
@@ -55,10 +58,10 @@ export default function VetLogin() {
         return;
       }
 
-      const res = await fetch("http://127.0.0.1:8000/api/auth/vet/login", {
+      const res = await fetch("http://127.0.0.1:8000/api/vet/vet/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ license_no: licenseNo.trim(), password }),
+        body: JSON.stringify({ license: licenseNo.trim(), password }),
       });
 
       const data = await res.json();
@@ -76,7 +79,7 @@ export default function VetLogin() {
       if (data.access_token) localStorage.setItem("token", data.access_token);
 
       setMessage("✅ Login successful! Redirecting...");
-      navigate("/vet/dashboard", { replace: true });
+      navigate("/vet_dashboard", { replace: true });
       setTimeout(() => window.location.reload(), 150);
     } catch (error) {
       if (error instanceof Error) setMessage(`❌ ${error.message}`);

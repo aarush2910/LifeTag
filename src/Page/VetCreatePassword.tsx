@@ -31,10 +31,10 @@ export default function VetCreatePassword() {
     setLoading(true);
     setMessage("");
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/auth/vet/create-password", {
+      const res = await fetch("http://127.0.0.1:8000/api/vet/vet/create-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ license_no: licenseNo.trim(), new_password: password }),
+        body: JSON.stringify({ license: licenseNo.trim(), new_password: password }),
       });
 
       const data = await res.json();
@@ -107,7 +107,7 @@ export default function VetCreatePassword() {
                   Creating...
                 </span>
               ) : (
-                "Create Password"
+                "Create Password "
               )}
             </Button>
           </div>

@@ -118,7 +118,7 @@ async def list_cattle_complaints(status: str | None = None, page: int = 1, per_p
 
 
 
-@router.get("/cattle/{complaint_id}")
+@router.get("/cattle")
 async def get_cattle_complaint(complaint_id: str, db: AsyncSession = Depends(get_db)):
     from sqlalchemy import select
     import uuid
@@ -155,7 +155,7 @@ async def get_cattle_complaint(complaint_id: str, db: AsyncSession = Depends(get
 
 
 
-@router.put("/cattle/{complaint_id}/status")
+@router.put("/cattle")
 async def update_complaint_status(complaint_id: str, new_status: str, db: AsyncSession = Depends(get_db)):
     from sqlalchemy import select
     import uuid

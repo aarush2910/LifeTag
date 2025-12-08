@@ -48,8 +48,8 @@ type AppointmentResponse = {
 type CattleSummary = {
   cattle_name?: string | null;
   breed?: string | null;
-  cattle_tag_id?: string | null;  // we normalize into this
-  inaph_tag_id?: string | null;   // backend raw key
+  cattle_tag_id?: string | null; // we normalize into this
+  inaph_tag_id?: string | null; // backend raw key
 };
 
 // Match Pydantic FarmerResponse
@@ -80,7 +80,9 @@ export default function AddAppointmentWithSidebar() {
             className="flex h-16 shrink-0 items-center gap-2 border-b bg-background/80 backdrop-blur-md sticky top-0 z-10"
           >
             <SidebarTrigger className="-ml-1" />
-            <h1 className="text-lg font-semibold ml-4">🩺 Schedule Appointment</h1>
+            <h1 className="text-lg font-semibold ml-4">
+              🩺 Schedule Appointment
+            </h1>
             <div className="ml-auto pr-2 md:pr-4">
               <UserMenu />
             </div>
@@ -94,8 +96,8 @@ export default function AddAppointmentWithSidebar() {
                     Schedule Vet Appointment
                   </CardTitle>
                   <p className="text-primary-foreground/80 text-sm mt-1">
-                    Fill the cards step-by-step to schedule an appointment. Fields with * are
-                    required.
+                    Fill the cards step-by-step to schedule an appointment.
+                    Fields with * are required.
                   </p>
                 </CardHeader>
 
@@ -279,10 +281,7 @@ function AddAppointmentFormInline() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleChange = (
-    key: keyof AppointmentCreatePayload,
-    value: any
-  ) => {
+  const handleChange = (key: keyof AppointmentCreatePayload, value: any) => {
     setForm((p) => ({ ...p, [key]: value }));
   };
 
@@ -322,8 +321,7 @@ function AddAppointmentFormInline() {
   };
 
   const resetForm = (keep?: Partial<AppointmentCreatePayload>) => {
-    const { owner_id, farmer_name, inaph_id, vet_id } =
-      getStoredUserInfo();
+    const { owner_id, farmer_name, inaph_id, vet_id } = getStoredUserInfo();
 
     setForm({
       farmer_name: keep?.farmer_name ?? farmer_name ?? "",
@@ -371,7 +369,10 @@ function AddAppointmentFormInline() {
         try {
           if (raw) storageOwner = JSON.parse(raw).user_id;
         } catch {}
-        storageOwner = storageOwner || localStorage.getItem("farmerId") || localStorage.getItem("user_id");
+        storageOwner =
+          storageOwner ||
+          localStorage.getItem("farmerId") ||
+          localStorage.getItem("user_id");
         if (storageOwner) setForm((p) => ({ ...p, owner_id: storageOwner }));
       }
       if (!form.vet_id) {
@@ -406,7 +407,9 @@ function AddAppointmentFormInline() {
       if (form.cattle_breed) payload.cattle_breed = form.cattle_breed;
 
       // Remove undefined
-      Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+      Object.keys(payload).forEach(
+        (k) => payload[k] === undefined && delete payload[k]
+      );
 
       // LOG the payload to inspect what frontend sends
       console.log("Sending appointment payload:", payload);
@@ -431,9 +434,7 @@ function AddAppointmentFormInline() {
       const data = await res.json();
       if (!res.ok) {
         const message =
-          data?.detail ||
-          data?.message ||
-          "Failed to create appointment";
+          data?.detail || data?.message || "Failed to create appointment";
         throw new Error(message);
       }
 
@@ -595,6 +596,7 @@ function AddAppointmentFormInline() {
                         return (
                           <option key={`${tag}-${index}`} value={tag}>
                             {tag}
+                            {c.cattle_name ? ` — ${c.cattle_name}` : ""}
                           </option>
                         );
                       })}

@@ -23,7 +23,7 @@ const menuItems = [
 
 const dashboardOptions = [
   { label: "Farmer Dashboard", value: "/dialog" },
-  { label: "Vet Dashboard", value: "/vet_dashboard" },
+  { label: "Vet Dashboard", value: "/vet/login" },
   { label: "Shelter Dashboard", value: "/shelter_dashboard" },
 ];
 

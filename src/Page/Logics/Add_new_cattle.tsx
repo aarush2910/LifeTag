@@ -24,6 +24,10 @@ import {
   SelectValue,
 } from "..//../components/ui/select";
 
+// ✅ BASE URL 
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+
 function AddCattleFormInline() {
   const [formData, setFormData] = useState({
     cid: "",
@@ -123,8 +127,9 @@ function AddCattleFormInline() {
       if (formData.source) formDataToSend.append("source", formData.source);
       if (formData.photo) formDataToSend.append("photo", formData.photo);
 
+      // ✅ USE API_BASE HERE INSTEAD OF HARDCODED URL
       const response = await fetch(
-        "http://127.0.0.1:8000/api/cattles/add-new-cattle",
+        `${API_BASE}/api/cattles/add-new-cattle`,
         {
           method: "POST",
           headers: {
@@ -237,7 +242,6 @@ function AddCattleFormInline() {
             onChange={(e: any) => handleChange("dob", e.target.value)}
             required
             className="h-11"
-            // 🔒 only allow today in the calendar UI
             min={today}
             max={today}
           />
@@ -284,7 +288,6 @@ function AddCattleFormInline() {
             value={formData.purchaseDate}
             onChange={(e: any) => handleChange("purchaseDate", e.target.value)}
             className="h-11"
-            // 🔒 only allow today if they select a date
             min={today}
             max={today}
           />

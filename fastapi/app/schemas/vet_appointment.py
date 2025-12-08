@@ -16,6 +16,7 @@ class StatusEnum(str, Enum):
 class AppointmentBase(BaseModel):
     farmer_name: Optional[str] = None
     inaph_id: Optional[str] = None
+    cattle_name: Optional[str] = None
     cattle_tag_id: Optional[str] = None
     cattle_breed: Optional[str] = None
     symptoms: str

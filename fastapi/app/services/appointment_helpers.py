@@ -26,6 +26,7 @@ def appointment_to_response(appt: Appointment) -> Dict[str, Any]:
     return {
         "farmer_name": farmer.fname if farmer else None,
         "inaph_id": farmer.inaph_id if farmer else None,
+        "cattle_name": cattle.cattle_name if cattle else None,
         "cattle_tag_id": preferred_tag,
         "inaph_tag_id": inaph_tag,
         "local_cattle_id": local_tag,

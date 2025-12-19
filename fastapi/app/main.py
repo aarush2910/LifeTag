@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 import asyncio
 from fastapi import FastAPI
@@ -6,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.session import engine
 from app.db.base import Base
+from app.core.redis_client import get_redis, close_redis
 from app.api.v1 import auth, complaints, vet, shelter, cattles, vet_event, vet_health ,vet_get_cattles
 from app.api.v1.vet_request import router as vet_request_router
 from starlette.staticfiles import StaticFiles
@@ -15,6 +17,16 @@ from fastapi import HTTPException
 
 
 app = FastAPI(title="LifeTag API")
+
+
+# Simple timing middleware to expose backend processing time in the response header
+@app.middleware("http")
+async def add_process_time_header(request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration_ms = (time.perf_counter() - start) * 1000
+    response.headers["X-Process-Time-ms"] = f"{duration_ms:.2f}"
+    return response
 
 
 # Add CORS middleware
@@ -81,6 +93,17 @@ async def startup_event():
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         print("✓ Database tables created successfully or already exist.")
+        
+        # Initialize Redis connection
+        try:
+            redis_client = await get_redis()
+            if redis_client:
+                print("✓ Redis connection established successfully")
+            else:
+                print("⚠ Redis unavailable - continuing without cache")
+        except Exception as redis_err:
+            print(f"⚠ Redis connection failed (continuing without cache): {redis_err}")
+            
     except asyncio.CancelledError:
             # Reloader or server requested cancellation — stop startup quietly
             # Returning prevents the CancelledError from bubbling into Starlette's
@@ -89,3 +112,12 @@ async def startup_event():
     except Exception as e:
         print(f"✗ Startup failed: {e}")
         raise
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up resources on shutdown."""
+    try:
+        await close_redis()
+    except Exception as e:
+        print(f"⚠ Error during shutdown: {e}")

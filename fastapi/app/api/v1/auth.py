@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import timedelta
 
 from app.db.session import get_db
+from app.core.redis_client import cache_get, cache_set, cache_delete_pattern
 from app.schemas.auth import (
     LoginRequest,
     FarmerCreate,
@@ -78,6 +79,18 @@ async def get_farmer_info(
     🔹 Used to fetch farmer details for profile or linking checks.
     🔹 Identifier can be INAPH ID, Aadhaar, Email, or Phone.
     """
+    # Build cache key
+    cache_key = f"farmer_info:{identifier}"
+    
+    # Try cache first
+    cached = await cache_get(cache_key)
+    if cached:
+        print(f"✓ Cache HIT: {cache_key}")
+        return FarmerResponse(**cached)
+    
+    print(f"✗ Cache MISS: {cache_key}")
+    
+    # Cache miss - query DB
     norm_aadhaar = None
     norm_phone = None
 
@@ -109,7 +122,13 @@ async def get_farmer_info(
     if not farmer:
         raise HTTPException(status_code=404, detail="Farmer not found")
 
-    return farmer
+    # Convert to response model
+    response = FarmerResponse.model_validate(farmer)
+    
+    # Cache the result (10 minutes)
+    await cache_set(cache_key, response.model_dump(), ttl=600)
+    
+    return response
 
 
 # ============================================================

@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     DB_NAME: str
     DATABASE_URL: AnyUrl
 
+    # Redis (Upstash) Settings
+    REDIS_URL: str | None = None
+    REDIS_ENABLED: bool = True
+    REDIS_CACHE_TTL: int = 300
+    REDIS_MAX_CONNECTIONS: int = 5
+
     # Mail Settings
     MAIL_SERVER: str
     MAIL_PORT: int
@@ -39,7 +45,6 @@ class Settings(BaseSettings):
 
    
     model_config = SettingsConfigDict(
-
         env_file="../.env",
         env_file_encoding="utf-8",
         extra="ignore"

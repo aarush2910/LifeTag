@@ -6,6 +6,7 @@ from sqlalchemy import select, and_, func, or_
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db  
+from app.core.redis_client import cache_get, cache_set, cache_delete_pattern
 from app.models.vet_appointment import Appointment 
 from app.models.user import Farmer, Vet
 from app.models.cattle import Cattle
@@ -23,6 +24,7 @@ from app.schemas.vet_appointment import (
     PaginatedAppointments,
     AppointmentCreateWithIds,
 )
+from app.core.redis_client import cache_get, cache_set, cache_delete_pattern
 
 router = APIRouter(tags=["Appointments"])
 
@@ -35,6 +37,11 @@ async def list_vets(
     name: Optional[str] = Query(None),
 ):
     """Return a list of vets for the farmer dashboard. Supports simple filtering by specialization or partial name."""
+    # Cache key
+    cache_key = f"vets:list:limit:{limit}:spec:{(specialization or '').lower()}:name:{(name or '').lower()}"
+    cached = await cache_get(cache_key)
+    if cached:
+        return cached
     stmt = select(Vet)
     if specialization:
         stmt = stmt.where(func.lower(Vet.specialization).like(f"%{specialization.lower()}%"))
@@ -55,6 +62,11 @@ async def list_vets(
             phone=getattr(v, "vphone", None),
             short_address=short_addr,
         ))
+    # Cache results (10 minutes)
+    try:
+        await cache_set(cache_key, [c.model_dump() for c in cards], ttl=600)
+    except Exception:
+        pass
     return cards
 
 
@@ -102,6 +114,11 @@ async def create_appointment(payload: AppointmentCreateWithIds, db: AsyncSession
     stmt = select(Appointment).options(selectinload(Appointment.farmer), selectinload(Appointment.cattle)).where(Appointment.aid == appt.aid)
     res = await db.execute(stmt)
     appt = res.scalars().first()
+    # Invalidate appointments cache (simple, broad invalidation)
+    try:
+        await cache_delete_pattern("appointments:*")
+    except Exception:
+        pass
     return appointment_to_response(appt)
 
 
@@ -121,6 +138,27 @@ async def list_appointments(
     cattle_tag_id: Optional[str] = Query(None, description="Filter by cattle tag id"),
     vet_id: Optional[UUID] = Query(None, description="Filter by vet id"),
 ):
+    # Build a cache key from filter params
+    header_owner = None
+    if request is not None:
+        header_owner = request.headers.get("x-owner-id") or request.headers.get("x-user-id")
+    cache_key_parts = [
+        f"owner:{header_owner}" if header_owner else "owner:",
+        f"inaph:{inaph_id or ''}",
+        f"ctag:{cattle_tag_id or ''}",
+        f"vet:{str(vet_id) if vet_id else ''}",
+        f"status:{status.value if status else ''}",
+        f"from:{date_from.isoformat() if date_from else ''}",
+        f"to:{date_to.isoformat() if date_to else ''}",
+        f"skip:{skip}",
+        f"limit:{limit}",
+    ]
+    cache_key = "appointments:" + ":".join(cache_key_parts)
+
+    # Try cache first
+    cached = await cache_get(cache_key)
+    if cached:
+        return PaginatedAppointments(**cached)
     stmt = select(Appointment).options(selectinload(Appointment.farmer), selectinload(Appointment.cattle))
     filters = []
     join_farmer = False
@@ -133,14 +171,11 @@ async def list_appointments(
     if date_to:
         filters.append(Appointment.appointment_date <= date_to)
     # If the client sent X-Owner-Id / X-User-Id header (logged-in farmer), prefer filtering by owner_id.
-    owner_header = None
-    if request is not None:
-        owner_header = request.headers.get("x-owner-id") or request.headers.get("x-user-id")
-    if owner_header and not inaph_id:
+    if header_owner and not inaph_id:
         # header contains owner UUID (fid) — filter by Appointment.owner_id so a logged-in farmer
         # sees only their own appointments. If `inaph_id` query param is provided it takes precedence.
         try:
-            owner_uuid = UUID(owner_header)
+            owner_uuid = UUID(header_owner)
             filters.append(Appointment.owner_id == owner_uuid)
         except Exception:
             raise HTTPException(status_code=400, detail="x-owner-id header must be a valid UUID")
@@ -174,7 +209,13 @@ async def list_appointments(
     res = await db.execute(stmt)
     appts = res.scalars().all()
 
-    return PaginatedAppointments(total=total, skip=skip, limit=limit, results=[appointment_to_response(a) for a in appts])
+    response = PaginatedAppointments(total=total, skip=skip, limit=limit, results=[appointment_to_response(a) for a in appts])
+    # Cache short TTL (appointments change frequently)
+    try:
+        await cache_set(cache_key, response.model_dump(), ttl=120)
+    except Exception:
+        pass
+    return response
 
 
 
@@ -201,6 +242,11 @@ async def update_appointment(appointment_id: UUID, payload: AppointmentUpdate, d
     stmt = select(Appointment).options(selectinload(Appointment.farmer), selectinload(Appointment.cattle)).where(Appointment.aid == appointment_id)
     res = await db.execute(stmt)
     appt = res.scalars().first()
+    # Invalidate appointments cache
+    try:
+        await cache_delete_pattern("appointments:*")
+    except Exception:
+        pass
     return appointment_to_response(appt)
 
 
@@ -214,4 +260,8 @@ async def delete_appointment(appointment_id: UUID, db: AsyncSession = Depends(ge
         raise HTTPException(status_code=404, detail="Appointment not found")
     await db.delete(appt)
     await db.commit()
+    try:
+        await cache_delete_pattern("appointments:*")
+    except Exception:
+        pass
     return None

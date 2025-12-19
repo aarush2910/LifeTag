@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, R
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
+from app.core.redis_client import cache_get, cache_set, cache_delete_pattern
 from app.models.cattle import Cattle
 from datetime import date, datetime
 from app.core.config import settings
@@ -21,6 +22,17 @@ async def cattle_cards(limit: int = 20, owner_id: str | None = None, db: AsyncSe
     - `limit`: maximum number of cards to return.
     - `owner_id`: optional owner UUID (string) to filter by owner.
     """
+    # Build cache key
+    cache_key = f"cattles:owner:{owner_id or 'all'}:limit:{limit}"
+    
+    # Try cache first
+    cached = await cache_get(cache_key)
+    if cached:
+        print(f"✓ Cache HIT: {cache_key}")
+        return cached
+    
+    print(f"✗ Cache MISS: {cache_key}")
+    
     try:
         stmt = select(Cattle)
         if owner_id:
@@ -67,6 +79,9 @@ async def cattle_cards(limit: int = 20, owner_id: str | None = None, db: AsyncSe
                 "cattle_tag_id": c.inaph_tag_id,
             })
 
+        # Cache for 3 minutes
+        await cache_set(cache_key, cards, ttl=180)
+        
         return cards
     except HTTPException:
         raise
@@ -144,7 +159,11 @@ async def add_new_cattle(
         db.add(new_cattle)
         await db.commit()
         await db.refresh(new_cattle)
-
+        # Invalidate cattle cards cache
+        try:
+            await cache_delete_pattern("cattles:owner:*")
+        except Exception:
+            pass
         return {"message": "Cattle added successfully!", "cid": str(new_cattle.cid), "local_cattle_id": local_id_val, "cattle_name": new_cattle.cattle_name}
     except Exception as e:
         try:

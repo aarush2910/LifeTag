@@ -7,6 +7,7 @@ from app.db.session import get_db
 from app.schemas.vet_health import VetHealthRecordCreate, VetHealthRecordResponse
 from app.models.vet_health import VetHealthRecord
 from app.models.vet_appointment import Appointment
+from app.core.redis_client import cache_get, cache_set, cache_delete_pattern
 
 router = APIRouter( tags=["Vet Health Record"])
 
@@ -63,6 +64,11 @@ async def add_health_record(
         db.add(new_record)
         await db.commit()
         await db.refresh(new_record)
+        # Invalidate health records caches
+        try:
+            await cache_delete_pattern("vet_health:*")
+        except Exception:
+            pass
         return new_record
 
     except HTTPException:
@@ -79,29 +85,57 @@ async def add_health_record(
 # 📋 Get all health records
 @router.get("/", response_model=list[VetHealthRecordResponse])
 async def list_health_records(db: AsyncSession = Depends(get_db)):
+    cache_key = "vet_health:all"
+    cached = await cache_get(cache_key)
+    if cached:
+        return cached
     result = await db.scalars(select(VetHealthRecord))
-    return result.all()
+    records = result.all()
+    payload = [VetHealthRecordResponse.model_validate(r).model_dump() for r in records]
+    try:
+        await cache_set(cache_key, payload, ttl=600)
+    except Exception:
+        pass
+    return payload
 
 
 # 🔍 Get records by INAPH ID
 @router.get("/Inaph_ID", response_model=list[VetHealthRecordResponse])
 async def get_by_inaph(inaph_id: str, db: AsyncSession = Depends(get_db)):
+    cache_key = f"vet_health:inaph:{inaph_id}"
+    cached = await cache_get(cache_key)
+    if cached:
+        return cached
     result = await db.scalars(
         select(VetHealthRecord).where(VetHealthRecord.inaph_id == inaph_id)
     )
     records = result.all()
     if not records:
         raise HTTPException(status_code=404, detail="No records found for this INAPH ID")
-    return records
+    payload = [VetHealthRecordResponse.model_validate(r).model_dump() for r in records]
+    try:
+        await cache_set(cache_key, payload, ttl=600)
+    except Exception:
+        pass
+    return payload
 
 
 # 🔍 Get records by Cattle ID
 @router.get("/cattle_ID", response_model=list[VetHealthRecordResponse])
 async def get_by_cattle(cattle_id: str, db: AsyncSession = Depends(get_db)):
+    cache_key = f"vet_health:cattle:{cattle_id}"
+    cached = await cache_get(cache_key)
+    if cached:
+        return cached
     result = await db.scalars(
         select(VetHealthRecord).where(VetHealthRecord.cattle_id == cattle_id)
     )
     records = result.all()
     if not records:
         raise HTTPException(status_code=404, detail="No records found for this cattle ID")
-    return records
+    payload = [VetHealthRecordResponse.model_validate(r).model_dump() for r in records]
+    try:
+        await cache_set(cache_key, payload, ttl=600)
+    except Exception:
+        pass
+    return payload

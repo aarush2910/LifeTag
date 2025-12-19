@@ -7,6 +7,7 @@ from app.models.complaint import CattleComplaint
 from app.tasks.email_tasks import schedule_cattle_complaint_email
 from datetime import datetime
 import logging
+from app.core.redis_client import cache_get, cache_set, cache_delete_pattern
 
 router = APIRouter(tags=["complaints"])
 
@@ -75,6 +76,12 @@ async def create_cattle_complaint(
         except Exception:
             logging.exception("Failed to schedule/send complaint notification email")
 
+        # Invalidate complaints cache (list/single)
+        try:
+            await cache_delete_pattern("complaints:cattle:*")
+        except Exception:
+            pass
+
         return {
                 "message": "Cattle complaint registered successfully",
                 "complaint_id": str(new.complaint_id),
@@ -85,6 +92,11 @@ async def create_cattle_complaint(
 @router.get("/cattle")
 async def list_cattle_complaints(status: str | None = None, page: int = 1, per_page: int = 10, db: AsyncSession = Depends(get_db)):
     from sqlalchemy import select, func as sql_func
+    # Build cache key and try cache first
+    cache_key = f"complaints:cattle:list:status:{status or ''}:page:{page}:pp:{per_page}"
+    cached = await cache_get(cache_key)
+    if cached:
+        return cached
     query = select(CattleComplaint)
     if status:
         query = query.where(CattleComplaint.complaint_status == status)
@@ -114,7 +126,13 @@ async def list_cattle_complaints(status: str | None = None, page: int = 1, per_p
             "created_at": c.created_at.isoformat(),
             "has_photo": bool(c.photo_path)
         })
-    return {"complaints": res, "total": total, "page": page}
+    response = {"complaints": res, "total": total, "page": page}
+    # Cache for short TTL (5 minutes)
+    try:
+        await cache_set(cache_key, response, ttl=300)
+    except Exception:
+        pass
+    return response
 
 
 
@@ -122,6 +140,11 @@ async def list_cattle_complaints(status: str | None = None, page: int = 1, per_p
 async def get_cattle_complaint(complaint_id: str, db: AsyncSession = Depends(get_db)):
     from sqlalchemy import select
     import uuid
+    # Try cache first
+    cache_key = f"complaints:cattle:item:{complaint_id}"
+    cached = await cache_get(cache_key)
+    if cached:
+        return cached
     try:
         complaint_uuid = uuid.UUID(complaint_id)
     except ValueError:
@@ -132,7 +155,7 @@ async def get_cattle_complaint(complaint_id: str, db: AsyncSession = Depends(get
     c = result.scalar_one_or_none()
     if not c:
         raise HTTPException(status_code=404, detail="Complaint not found")
-    return {
+    response = {
         "complaint_id": str(c.complaint_id),
         "reporter_name": c.reporter_name,
         "reporter_phone": c.reporter_phone,
@@ -152,6 +175,11 @@ async def get_cattle_complaint(complaint_id: str, db: AsyncSession = Depends(get
         "created_at": c.created_at.isoformat(),
         "updated_at": c.updated_at.isoformat()
     }
+    try:
+        await cache_set(cache_key, response, ttl=600)
+    except Exception:
+        pass
+    return response
 
 
 
@@ -176,4 +204,9 @@ async def update_complaint_status(complaint_id: str, new_status: str, db: AsyncS
     c.complaint_status = new_status
     c.updated_at = datetime.utcnow()
     await db.commit()
+    # Invalidate complaints cache (list/single)
+    try:
+        await cache_delete_pattern("complaints:cattle:*")
+    except Exception:
+        pass
     return {"message":"Complaint status updated successfully","complaint_id": str(complaint_id),"new_status": new_status}

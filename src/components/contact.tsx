@@ -119,7 +119,8 @@ export default function CattleComplaintForm() {
             }
 
             console.log('Sending data to backend...')
-            const response = await fetch('http://127.0.0.1:8000/api/complaints/cattle', {
+            const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+            const response = await fetch(`${API_BASE}/api/complaints/cattle`, {
                 method: 'POST',
                 body: formDataToSend
             })

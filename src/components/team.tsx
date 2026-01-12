@@ -21,7 +21,7 @@ const members = [
     },
     {
         name: 'Pari Dubey',
-        role: 'Research & Development',
+        role: 'Frontend Developer',
         avatar: './pari.jpg',
         link: '#',
     },

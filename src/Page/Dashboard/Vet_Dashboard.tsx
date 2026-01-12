@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 
 
 
-type UserType = {
+export type UserType = {
   name: string;
   role: string;
   vet_id: string;
@@ -62,7 +62,7 @@ export default function Vet_Dashboard() {
                         <div className="ml-auto pr-2 md:pr-0">
                             <div className="text-right">
                                 <h2 className="text-lg font-semibold text-foreground">
-                                    Welcome, {user.license_no}!
+                                    Welcome, {user.name}!
                                 </h2>
                                 <p className="text-sm italic text-muted-foreground capitalize">
                                     {user.role} Dashboard

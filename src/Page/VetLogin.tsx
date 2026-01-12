@@ -66,14 +66,15 @@ export default function VetLogin() {
       });
 
       const data = await res.json();
+
       if (!res.ok) throw new Error(data.detail || "Invalid credentials");
 
       // store user data / token (adjust to your backend response)
       const user = {
         role: "vet",
-        vet_id: data.vet_id ?? null,
+        vet_id: data.user_id ?? null,
         license_no: licenseNo.trim(),
-        name: data.name ?? null,
+        name: data.user_name ?? null,
         token: data.access_token ?? null,
       };
       localStorage.setItem("user", JSON.stringify(user));

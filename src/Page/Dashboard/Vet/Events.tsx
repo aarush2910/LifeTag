@@ -21,8 +21,9 @@ export default function Events() {
   useEffect(() => {
     const fetchCattle = async () => {
       try {
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
         const user = JSON.parse(localStorage.getItem("user") || "{}");
-        const res = await fetch("http://127.0.0.1:8000/api/cattle/list", {
+        const res = await fetch(`${API_BASE}/api/cattle/list`, {
           headers: {
             Authorization: `Bearer ${user.token}`,
           },
@@ -54,8 +55,9 @@ export default function Events() {
     };
 
     try {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
       const user = JSON.parse(localStorage.getItem("user") || "{}");
-      const res = await fetch("http://127.0.0.1:8000/api/vaccination-events/create", {
+      const res = await fetch(`${API_BASE}/api/vaccination-events/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

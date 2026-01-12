@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 
 /**
  * Health.tsx
- * - Posts to: http://127.0.0.1:8000/vet/health-record/
+ * - Posts to: {API_BASE}/vet/health-record/
  * - Request body matches VetHealthRecordCreate
  */
 
@@ -70,7 +70,8 @@ export default function Health() {
     };
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/vet/health-record/vet-prescription", {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+      const res = await fetch(`${API_BASE}/vet/health-record/vet-prescription`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

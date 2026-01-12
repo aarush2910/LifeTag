@@ -21,6 +21,8 @@ type VetCardAPI = {
   short_address?: string | null;
 };
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+
 export default function VetListView() {
   const [vets, setVets] = useState<VetCardAPI[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,7 +40,7 @@ export default function VetListView() {
       setError(null);
       try {
         // fetch all vets; we'll paginate client-side
-        const res = await fetch("http://127.0.0.1:8000/api/vet/appointments/vets");
+       const res = await fetch(`${API_BASE}/api/vet/appointments/vets`);
         if (!res.ok) {
           const json = await res.json().catch(() => ({}));
           throw new Error(json?.detail || json?.message || `Failed to fetch vets (${res.status})`);

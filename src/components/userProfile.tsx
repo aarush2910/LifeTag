@@ -11,11 +11,16 @@ import {
 } from "../components/ui/sidebar";
 import Spinner from "../components/ui/spinner";
 
+interface UserType {
+    user_name: string;
+    role: string;
+}
+
 export default function UserProfileMenu() {
     const navigate = useNavigate();
     const { state } = useSidebar();
     const isCollapsed = state === "collapsed";
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState<UserType | null>(null);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     useEffect(() => {

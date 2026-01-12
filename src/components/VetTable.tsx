@@ -91,7 +91,6 @@ export type Appointment = {
 // Multi-column filter function
 const multiColumnFilterFn: FilterFn<Appointment> = (
   row,
-  columnId,
   filterValue
 ) => {
   const searchableRowContent = `${row.original.farmer_name} ${row.original.cattle_tag_id}`.toLowerCase();

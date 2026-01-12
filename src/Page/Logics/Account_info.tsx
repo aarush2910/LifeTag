@@ -1,7 +1,7 @@
 // src/Page/shelter/FarmerAccountInfo.tsx
 import { useEffect, useState } from "react";
 import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Card, CardContent } from "../../components/ui/card";
 import { Separator } from "../../components/ui/separator";
 import { Mail, Phone, MapPin, Tractor, Wheat } from "lucide-react";
 

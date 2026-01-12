@@ -1,4 +1,3 @@
-import React from "react";
 import { motion } from "framer-motion"; // 👈 for smooth transitions
 import { useNavigate } from "react-router-dom";
 import {

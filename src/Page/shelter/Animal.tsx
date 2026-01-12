@@ -8,7 +8,23 @@ import {
   import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../components/ui/tabs";
   import { Input } from "../../components/ui/input";
   import { useState } from "react";
-  const animals = [
+
+interface Animal {
+  tag: string;
+  name: string;
+  breed: string;
+  age: number;
+  pen: string;
+  health: string;
+  adoptionStatus: string;
+  photo: string;
+  inaphId: string;
+  birthDate: string;
+  marks: string;
+  weight: number;
+}
+
+  const animals: Animal[] = [
     {
       tag: "RFID-001",
       name: "Ganga",
@@ -40,7 +56,7 @@ import {
   ];
   
   export default function AnimalRegistry() {
-    const [selected, setSelected] = useState(null);
+    const [selected, setSelected] = useState<Animal | null>(null);
     const [search, setSearch] = useState("");
     const filtered = animals.filter((a) => a.name.toLowerCase().includes(search.toLowerCase()));
   

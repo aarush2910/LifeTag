@@ -46,7 +46,6 @@ export default function Dashboard() {
       transition: {
         delay: i * 0.15,
         duration: 0.5,
-        ease: "easeOut",
       },
     }),
   };

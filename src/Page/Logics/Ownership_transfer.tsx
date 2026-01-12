@@ -250,15 +250,15 @@ export default function OwnershipTransferForm() {
       opacity: 1,
       rotateY: 0,
       x: 0,
-      transition: { duration: 0.4, ease: "easeOut" },
+      transition: { duration: 0.4 },
     },
     exit: {
       opacity: 0,
       rotateY: -15,
       x: -40,
-      transition: { duration: 0.3, ease: "easeIn" },
+      transition: { duration: 0.3 },
     },
-  };
+  } as any;
 
   const stepLabel =
     step === 0

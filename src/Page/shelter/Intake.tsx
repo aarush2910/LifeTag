@@ -14,8 +14,25 @@ import {
   
   import { Table, TableHeader, TableRow, TableCell, TableBody } from "../../components/ui/table";
   import { useState } from "react";
+
+interface IntakeRequest {
+  id: string;
+  source: string;
+  date: string;
+  status: string;
+  animal: {
+    breed: string;
+    age: number;
+    photo: string;
+  };
+  applicant: {
+    name: string;
+    contact: string;
+    reason: string;
+  };
+}
   
-  const intakeRequests = [
+  const intakeRequests: IntakeRequest[] = [
     {
       id: "REQ-001",
       source: "Farmer",
@@ -51,7 +68,7 @@ import {
   ];
   
   export default function IntakeRequests() {
-    const [selectedRequest, setSelectedRequest] = useState(null);
+    const [selectedRequest, setSelectedRequest] = useState<IntakeRequest | null>(null);
     const [filter, setFilter] = useState("Pending");
   
     const filtered = intakeRequests.filter((r) => r.status === filter);

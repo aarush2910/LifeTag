@@ -135,7 +135,6 @@ export default function LoginPage() {
       // Redirect to dashboard
       navigate("/dashboard", { replace: true });
       // slight delay to allow storing before reload (optional)
-      setTimeout(() => window.location.reload(), 150);
     } catch (err) {
       console.error("Network/login error:", err);
       setError("Network error");

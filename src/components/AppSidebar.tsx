@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom"
-import { Moon, Sun, type LucideIcon } from "lucide-react"
+import { Moon, Sun } from "lucide-react"
+import type { ForwardRefExoticComponent, RefAttributes, SVGAttributes } from "react"
 
 import {
     Sidebar,
@@ -16,7 +17,9 @@ import {
 import { useTheme } from "../hooks/useTheme"
 import UserProfileMenu from "./userProfile"
 
-    export function AppSidebar({items}:{items:{title:string,url:string,icon:LucideIcon}}) {
+type LucideIcon = ForwardRefExoticComponent<SVGAttributes<SVGSVGElement> & RefAttributes<SVGSVGElement>>
+
+    export function AppSidebar({items}:{items:{title:string,url:string,icon:LucideIcon}[]}) {
     const location = useLocation()
     const { state } = useSidebar()
     const { theme, toggleTheme } = useTheme()

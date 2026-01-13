@@ -470,7 +470,7 @@ function AddAppointmentFormInline() {
       opacity: 1,
       rotateY: 0,
       x: 0,
-      transition: { type: "spring", stiffness: 260, damping: 24 },
+      transition: { duration: 0.5 },
     },
     exit: (dir: number) => ({
       opacity: 0,
@@ -478,7 +478,7 @@ function AddAppointmentFormInline() {
       x: dir > 0 ? -40 : 40,
       transition: { duration: 0.2 },
     }),
-  };
+  } as any;
 
   return (
     <div>

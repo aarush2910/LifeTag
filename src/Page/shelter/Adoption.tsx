@@ -7,9 +7,20 @@ import {
   import { Button } from "../../components/ui/button";
   import { Input } from "../../components/ui/input";
   import { Label } from "../../components/ui/label";
-  import { Textarea } from "../../components/ui/textarea";
   import { useState } from "react";
   import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../components/ui/tabs";
+
+interface AdoptionApp {
+  appId: string;
+  applicant: string;
+  date: string;
+  animalId: string;
+  references: string;
+  careIntent: string;
+  status: string;
+  fee: string;
+  signature: string;
+}
   
   const availableAnimals = [
     {
@@ -24,7 +35,7 @@ import {
     },
   ];
   
-  const adoptionApplications = [
+  const adoptionApplications: AdoptionApp[] = [
     {
       appId: "APP-101",
       applicant: "Rajesh Sharma",
@@ -39,10 +50,11 @@ import {
   ];
   
   export default function AdoptionProcessing() {
-    const [selectedApp, setSelectedApp] = useState(null);
+    const [selectedApp, setSelectedApp] = useState<AdoptionApp | null>(null);
     const [applications, setApplications] = useState(adoptionApplications);
   
     const finalizeAdoption = () => {
+      if (!selectedApp) return;
       const updated = applications.map((app) =>
         app.appId === selectedApp.appId
           ? { ...app, status: "Adopted" }
@@ -53,8 +65,8 @@ import {
       setSelectedApp(null);
     };
   
-    const handleInputChange = (field, value) => {
-      setSelectedApp((prev) => ({ ...prev, [field]: value }));
+    const handleInputChange = (field: keyof AdoptionApp, value: string) => {
+      setSelectedApp((prev) => prev ? { ...prev, [field]: value } : null);
     };
   
     return (

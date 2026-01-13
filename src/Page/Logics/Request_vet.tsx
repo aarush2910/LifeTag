@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   SidebarInset,
@@ -86,10 +86,9 @@ export default function VetListView() {
       transition: {
         delay: i * 0.06,
         duration: 0.4,
-        ease: "easeOut",
       },
     }),
-  };
+  } as any;
 
   const handleRequest = (vid: string) => {
     // store vet id so appointment form can auto-fill it

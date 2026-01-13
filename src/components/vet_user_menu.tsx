@@ -1,7 +1,6 @@
 import {
   BoltIcon,
   BookOpenIcon,
-  ChevronDownIcon,
   Layers2Icon,
   LogOutIcon,
   PinIcon,
@@ -28,7 +27,7 @@ export default function VetUSerMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="none" className="h-auto p-0">
+        <Button variant="ghost" className="h-auto p-0">
           <Avatar>
             <AvatarImage src="/origin/avatar.jpg" alt="Profile image" />
             <AvatarFallback>U</AvatarFallback>

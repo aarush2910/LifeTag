@@ -129,7 +129,7 @@ export default function InaphLogin() {
       // Redirect to dashboard
       setMessage("✅ Login successful! Redirecting...");
       navigate("/dashboard", { replace: true });
-      setTimeout(() => window.location.reload(), 150);
+      //setTimeout(() => window.location.reload(), 150);
     } catch (error: any) {
       console.error("Login error:", error);
       setMessage(`❌ ${error.message || "Login failed"}`);

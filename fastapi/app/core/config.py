@@ -36,8 +36,8 @@ class Settings(BaseSettings):
     MAIL_USE_TLS: bool = False
 
    
-    FRONTEND_URL: str = "http://localhost:5173"
-    CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
+    FRONTEND_URL: str = "https://life-tag.vercel.app"
+    CORS_ORIGINS: str = "https://life-tag.vercel.app,http://localhost:5173,http://127.0.0.1:5173"
 
     
     UPLOAD_FOLDER: str = "uploads"

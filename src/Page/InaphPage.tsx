@@ -100,7 +100,6 @@ export default function InaphPage() {
         setMessage("✅ Password created & logged in! Redirecting...");
         setTimeout(() => {
           navigate("/dashboard", { replace: true });
-          window.location.reload();
         }, 400);
       } catch (loginErr) {
         console.warn("Auto-login after create-password failed:", loginErr);

@@ -231,7 +231,7 @@ export const HeroHeader = () => {
                         Vet
                       </Link>
                       <Link
-                        to="/shelter/login"
+                        to="/shelter_dashboard"
                         className="px-3 py-2 rounded hover:bg-primary/5 text-sm"
                         role="menuitem"
                       >

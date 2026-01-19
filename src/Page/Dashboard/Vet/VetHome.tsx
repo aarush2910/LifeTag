@@ -15,13 +15,19 @@ const VetHome = () => {
 const userString = localStorage.getItem('user');
 
 const user: UserType | null = userString ? JSON.parse(userString) : null;
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
   // console.log(user?.vet_id)
   useEffect(() => {
     async function getData() {
       try {
         const res = await fetch(
-          `http://127.0.0.1:8000/api/vet/appointments/view-appointments?vet_id=${user?.vet_id}`
+          `${API_BASE}/api/vet/appointments/view-appointments?vet_id=${user?.vet_id}`
         );
+        
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
         const json = await res.json();
         // json = { limit, results: [...], skip, total }
         console.log(json)
@@ -42,13 +48,23 @@ const user: UserType | null = userString ? JSON.parse(userString) : null;
         setAppointments(mapped);
       } catch (err) {
         console.error("Failed to fetch appointments", err);
+        // Set empty array on error so the component can still render
+        setAppointments([]);
       } finally {
         setLoading(false);
       }
     }
 
-    getData();
-  }, []);
+    if (user?.vet_id) {
+      getData();
+    } else {
+      setLoading(false);
+    }
+  }, [user?.vet_id]);
+
+  if (!user) {
+    return <div className="p-4"><div className="text-center text-muted-foreground">Please log in to view appointments.</div></div>;
+  }
 
   if (loading) {
     return <div className="p-4"> <div className="w-full overflow-hidden rounded-md border">
@@ -80,7 +96,15 @@ const user: UserType | null = userString ? JSON.parse(userString) : null;
 
   return (
     <div className="p-4">
-      <VetTable data={appointments} />
+      {appointments.length === 0 ? (
+        <div className="text-center text-muted-foreground py-8">
+          <p className="text-lg font-medium">No appointments found</p>
+          <p className="text-sm mt-2">No appointments available for this veterinarian.</p>
+          <p className="text-xs mt-4 text-red-500">If the backend server is not running, please start it at {API_BASE}</p>
+        </div>
+      ) : (
+        <VetTable data={appointments} />
+      )}
     </div>
   );
 };

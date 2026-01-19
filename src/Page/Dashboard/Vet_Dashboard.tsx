@@ -18,6 +18,7 @@ export type UserType = {
 
 export default function Vet_Dashboard() {
     const navigate = useNavigate();
+    const { nested } = useParams();
     const [user, setUser] = useState<UserType | null>(null);
 
     useEffect(() => {
@@ -32,7 +33,6 @@ export default function Vet_Dashboard() {
     if (!user) {
         return <div>Loading...</div>;
     }
-    const { nested } = useParams();
   // const user = { user_name: "Uno", role: "Vet", user_id: "989832" };
       //   role: "vet",
       //   vet_id: data.vet_id ?? null,

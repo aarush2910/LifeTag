@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -8,6 +8,7 @@ from app.schemas.vet_health import VetHealthRecordCreate, VetHealthRecordRespons
 from app.models.vet_health import VetHealthRecord
 from app.models.vet_appointment import Appointment
 from app.core.redis_client import cache_get, cache_set, cache_delete_pattern
+from app.tasks.notification_tasks import schedule_prescription_notification
 
 router = APIRouter( tags=["Vet Health Record"])
 
@@ -17,6 +18,7 @@ router = APIRouter( tags=["Vet Health Record"])
 async def add_health_record(
     appointment_code: str,
     record: VetHealthRecordCreate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
     try:
@@ -64,6 +66,15 @@ async def add_health_record(
         db.add(new_record)
         await db.commit()
         await db.refresh(new_record)
+
+        schedule_prescription_notification(
+            background_tasks,
+            user_id=appt.owner_id,
+            appointment_code=appt.appointment_code,
+            follow_up_date=new_record.follow_up_date,
+            health_record_id=new_record.health_record_id,
+        )
+
         # Invalidate health records caches
         try:
             await cache_delete_pattern("vet_health:*")

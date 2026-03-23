@@ -24,6 +24,9 @@ def appointment_to_response(appt: Appointment) -> Dict[str, Any]:
     preferred_tag = inaph_tag or local_tag or short_cid
 
     return {
+        "aid": appt.aid,
+        "appointment_id": appt.aid,
+        "id": appt.aid,
         "farmer_name": farmer.fname if farmer else None,
         "inaph_id": farmer.inaph_id if farmer else None,
         "cattle_name": cattle.cattle_name if cattle else None,

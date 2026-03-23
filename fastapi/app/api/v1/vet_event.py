@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 from app.schemas.vet_event import VetEventCreate, VetEventResponse
@@ -9,14 +10,33 @@ from crud.vet_event import (
 )
 from app.db.session import get_db
 from app.core.redis_client import cache_get, cache_set, cache_delete_pattern
+from app.models.cattle import Cattle
+from app.tasks.notification_tasks import schedule_vet_event_notification
 
 router = APIRouter( tags=["Vet Events"])
 
 # 🟢 Create new vaccination event
 @router.post("/create", response_model=VetEventResponse, status_code=201)
-async def add_vet_event(event: VetEventCreate, db: AsyncSession = Depends(get_db)):
+async def add_vet_event(
+    event: VetEventCreate,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
     try:
         new_event = await create_vet_event(db, event)
+
+        cattle_stmt = select(Cattle).where(Cattle.cid == new_event.cattle_id)
+        cattle = (await db.execute(cattle_stmt)).scalars().first()
+        if cattle:
+            schedule_vet_event_notification(
+                background_tasks,
+                user_id=cattle.owner_id,
+                event_type=new_event.event_type,
+                event_name=new_event.event_name,
+                next_due_date=new_event.next_due_date,
+                event_id=new_event.id,
+            )
+
         # Invalidate events caches
         try:
             await cache_delete_pattern("vet_events:*")

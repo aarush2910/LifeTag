@@ -8,8 +8,9 @@ from app.core.config import settings
 from app.db.session import engine
 from app.db.base import Base
 from app.core.redis_client import get_redis, close_redis
-from app.api.v1 import auth, complaints, vet, shelter, cattles, vet_event, vet_health ,vet_get_cattles
+from app.api.v1 import auth, complaints, vet, shelter, cattles, vet_event, vet_health ,vet_get_cattles, notifications
 from app.api.v1.vet_request import router as vet_request_router
+from app.services.notification_service import run_notification_ttl_cleanup_loop
 from starlette.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi import HTTPException
@@ -17,6 +18,10 @@ from fastapi import HTTPException
 
 
 app = FastAPI(title="LifeTag API")
+
+
+notification_ttl_stop_event: asyncio.Event | None = None
+notification_ttl_task: asyncio.Task | None = None
 
 
 # Simple timing middleware to expose backend processing time in the response header
@@ -49,6 +54,7 @@ app.include_router(vet_event.router, prefix="/api/vet/vaccination-events")
 app.include_router(shelter.router, prefix="/api/shelter")
 app.include_router(complaints.router, prefix="/api/complaints")
 app.include_router(cattles.router, prefix="/api/cattles")
+app.include_router(notifications.router, prefix="/api/notifications")
 
 
 
@@ -103,6 +109,12 @@ async def startup_event():
                 print("⚠ Redis unavailable - continuing without cache")
         except Exception as redis_err:
             print(f"⚠ Redis connection failed (continuing without cache): {redis_err}")
+
+        global notification_ttl_stop_event, notification_ttl_task
+        notification_ttl_stop_event = asyncio.Event()
+        notification_ttl_task = asyncio.create_task(
+            run_notification_ttl_cleanup_loop(notification_ttl_stop_event, interval_seconds=3600)
+        )
             
     except asyncio.CancelledError:
             # Reloader or server requested cancellation — stop startup quietly
@@ -118,6 +130,16 @@ async def startup_event():
 async def shutdown_event():
     """Clean up resources on shutdown."""
     try:
+        global notification_ttl_stop_event, notification_ttl_task
+        if notification_ttl_stop_event:
+            notification_ttl_stop_event.set()
+        if notification_ttl_task:
+            notification_ttl_task.cancel()
+            try:
+                await notification_ttl_task
+            except asyncio.CancelledError:
+                pass
+
         await close_redis()
     except Exception as e:
         print(f"⚠ Error during shutdown: {e}")

@@ -14,6 +14,9 @@ class StatusEnum(str, Enum):
 
 # ---- Response Base Schema ----
 class AppointmentBase(BaseModel):
+    aid: Optional[UUID] = None
+    appointment_id: Optional[UUID] = None
+    id: Optional[UUID] = None
     farmer_name: Optional[str] = None
     inaph_id: Optional[str] = None
     cattle_name: Optional[str] = None
@@ -45,6 +48,29 @@ class AppointmentCreate(BaseModel):
 class AppointmentUpdate(BaseModel):
     status: Optional[StatusEnum] = None
     remarks: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_status_aliases(cls, data):
+        if not isinstance(data, dict):
+            return data
+
+        raw_status = data.get("status")
+        if isinstance(raw_status, str):
+            normalized = raw_status.strip().lower()
+            status_map = {
+                "accepted": StatusEnum.Approved.value,
+                "approve": StatusEnum.Approved.value,
+                "approved": StatusEnum.Approved.value,
+                "pending": StatusEnum.Pending.value,
+                "completed": StatusEnum.Completed.value,
+                "cancelled": StatusEnum.Cancelled.value,
+                "canceled": StatusEnum.Cancelled.value,
+            }
+            if normalized in status_map:
+                data["status"] = status_map[normalized]
+
+        return data
 
 # ---- Response Schema ----
 class AppointmentResponse(AppointmentBase):

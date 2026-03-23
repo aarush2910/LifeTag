@@ -6,7 +6,6 @@ from sqlalchemy import select, and_, func, or_
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db  
-from app.core.redis_client import cache_get, cache_set, cache_delete_pattern
 from app.models.vet_appointment import Appointment 
 from app.models.user import Farmer, Vet
 from app.models.cattle import Cattle
@@ -25,6 +24,7 @@ from app.schemas.vet_appointment import (
     AppointmentCreateWithIds,
 )
 from app.core.redis_client import cache_get, cache_set, cache_delete_pattern
+from app.tasks.notification_tasks import send_appointment_approved_notification_now
 
 router = APIRouter(tags=["Appointments"])
 
@@ -220,41 +220,45 @@ async def list_appointments(
 
 
 
-# Update appointment (status and/or remarks)
-@router.put("/", response_model=AppointmentResponse)
-async def update_appointment(appointment_id: UUID, payload: AppointmentUpdate, db: AsyncSession = Depends(get_db)):
-    # load appointment with related farmer and cattle
+# Update appointment (status and/or remarks
+@router.put("/{appointment_id}/accept", response_model=AppointmentResponse)
+async def accept_appointment(
+    appointment_id: UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Convenience endpoint for frontend Accept button: Pending -> Approved."""
     stmt = select(Appointment).options(selectinload(Appointment.farmer), selectinload(Appointment.cattle)).where(Appointment.aid == appointment_id)
     res = await db.execute(stmt)
     appt = res.scalars().first()
     if not appt:
         raise HTTPException(status_code=404, detail="Appointment not found")
 
-    update_data = payload.dict(exclude_unset=True)
-    if "status" in update_data:
-        appt.status = update_data["status"].value if isinstance(update_data["status"], StatusEnumSchema) else update_data["status"]
-    if "remarks" in update_data:
-        appt.remarks = update_data["remarks"]
-
+    appt.status = StatusEnumSchema.Approved.value
     db.add(appt)
     await db.commit()
-    # re-query with eager loads for the response
+
     stmt = select(Appointment).options(selectinload(Appointment.farmer), selectinload(Appointment.cattle)).where(Appointment.aid == appointment_id)
     res = await db.execute(stmt)
     appt = res.scalars().first()
-    # Invalidate appointments cache
+
     try:
         await cache_delete_pattern("appointments:*")
     except Exception:
         pass
+
+    await send_appointment_approved_notification_now(
+        user_id=appt.owner_id,
+        appointment_code=appt.appointment_code,
+        appointment_id=appt.aid,
+    )
+
     return appointment_to_response(appt)
 
 
-
-
 # Delete appointment
-@router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_appointment(appointment_id: UUID, db: AsyncSession = Depends(get_db)):
+@router.delete("/{appointment_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_appointment_by_path(appointment_id: UUID, db: AsyncSession = Depends(get_db)):
+    """Path-param delete endpoint for frontend convenience."""
     appt = await db.get(Appointment, appointment_id)
     if not appt:
         raise HTTPException(status_code=404, detail="Appointment not found")

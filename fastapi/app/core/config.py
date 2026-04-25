@@ -31,13 +31,14 @@ class Settings(BaseSettings):
     MAIL_PORT: int
     MAIL_USERNAME: str | None = None
     MAIL_PASSWORD: str | None = None
+    MAIL_FROM: str | None = None          # Display From address (can differ from MAIL_USERNAME)
     MAIL_FROM_NAME: str | None = "LifeTag Support"
     MAIL_USE_SSL: bool = True
     MAIL_USE_TLS: bool = False
 
    
     FRONTEND_URL: str = "https://life-tag.vercel.app"
-    CORS_ORIGINS: str = "https://life-tag.vercel.app,http://localhost:5173,http://127.0.0.1:5173,http://lifetag-frontend-v2.s3-website.ap-south-1.amazonaws.com"
+    CORS_ORIGINS: str = "https://life-tag.vercel.app,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://127.0.0.1:5173,http://lifetag-frontend-v2.s3-website.ap-south-1.amazonaws.com"
 
     
     UPLOAD_FOLDER: str = "uploads"

@@ -18,7 +18,7 @@ class CattleComplaint(Base):
 
     # Reporter Info
     reporter_name: Mapped[str] = mapped_column(String(50), nullable=False)
-    reporter_phone: Mapped[str] = mapped_column(String(10), nullable=False) 
+    reporter_phone: Mapped[str] = mapped_column(String(15), nullable=False) 
     reporter_email: Mapped[str] = mapped_column(String(100), nullable=True)
     reporter_location: Mapped[str] = mapped_column(String(200), nullable=False)
 

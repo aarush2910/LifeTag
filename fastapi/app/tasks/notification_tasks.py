@@ -94,15 +94,23 @@ def schedule_appointment_approved_notification(
     user_id: UUID,
     appointment_code: str | None,
     appointment_id: UUID,
+    vet_name: str | None = None,
+    cattle_tag_id: str | None = None,
+    appointment_date: str | None = None,
+    time_slot: str | None = None,
 ):
     code_text = appointment_code or "(code unavailable)"
+    vet_text = f"Dr. {vet_name}" if vet_name and not vet_name.lower().startswith("dr") else (vet_name or "your vet")
+    cattle_text = f" for cattle {cattle_tag_id}" if cattle_tag_id else ""
+    date_text = f" on {appointment_date}" if appointment_date else ""
+    time_text = f" at {time_slot}" if time_slot else ""
     background_tasks.add_task(
         _create_notification_in_background,
         user_id=user_id,
         user_role="farmer",
         notification_type="APPOINTMENT_APPROVED",
-        title="Appointment Accepted",
-        message=f"Your appointment {code_text} has been accepted by vet.",
+        title="✅ Appointment Accepted",
+        message=f"{vet_text} has accepted your appointment {code_text}{cattle_text}{date_text}{time_text}.",
         entity_id=appointment_id,
         entity_type="appointment",
     )
@@ -113,17 +121,26 @@ async def send_appointment_approved_notification_now(
     user_id: UUID,
     appointment_code: str | None,
     appointment_id: UUID,
+    vet_name: str | None = None,
+    cattle_tag_id: str | None = None,
+    appointment_date: str | None = None,
+    time_slot: str | None = None,
 ):
     code_text = appointment_code or "(code unavailable)"
+    vet_text = f"Dr. {vet_name}" if vet_name and not vet_name.lower().startswith("dr") else (vet_name or "your vet")
+    cattle_text = f" for cattle {cattle_tag_id}" if cattle_tag_id else ""
+    date_text = f" on {appointment_date}" if appointment_date else ""
+    time_text = f" at {time_slot}" if time_slot else ""
     await _create_notification_now(
         user_id=user_id,
         user_role="farmer",
         notification_type="APPOINTMENT_APPROVED",
-        title="Appointment Accepted",
-        message=f"Your appointment {code_text} has been accepted by vet.",
+        title="✅ Appointment Accepted",
+        message=f"{vet_text} has accepted your appointment {code_text}{cattle_text}{date_text}{time_text}.",
         entity_id=appointment_id,
         entity_type="appointment",
     )
+
 
 
 def schedule_vet_event_notification(

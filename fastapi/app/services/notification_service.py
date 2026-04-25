@@ -152,10 +152,10 @@ async def mark_all_notifications_read(db: AsyncSession, *, user_id: UUID) -> int
     return len(rows)
 
 
-async def delete_expired_read_notifications(db: AsyncSession, *, days: int = 30) -> int:
+async def delete_expired_read_notifications(db: AsyncSession, *, days: int = 15) -> int:
+    """Delete ALL notifications older than `days` days (read or unread)."""
     cutoff = datetime.utcnow() - timedelta(days=days)
     stmt = delete(Notification).where(
-        Notification.is_read.is_(True),
         Notification.created_at < cutoff,
     )
     result = await db.execute(stmt)
@@ -167,7 +167,7 @@ async def run_notification_ttl_cleanup_loop(stop_event: asyncio.Event, *, interv
     while not stop_event.is_set():
         try:
             async with AsyncSessionLocal() as db:
-                deleted = await delete_expired_read_notifications(db, days=30)
+                deleted = await delete_expired_read_notifications(db, days=15)
                 if deleted:
                     print(f"✓ Notification TTL cleanup removed {deleted} rows")
         except Exception as e:

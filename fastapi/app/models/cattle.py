@@ -30,14 +30,20 @@ class Cattle(Base):
     owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("farmers.fid"), nullable=False)
     farmer = relationship("Farmer", back_populates="cattles")
 
-    # Additional fields
-    weight: Mapped[float] = mapped_column(Float, nullable=True)
-    health_condition: Mapped[str] = mapped_column(String(100), nullable=True)
-    purchased_date: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    source: Mapped[str] = mapped_column(String(100), nullable=True)
-    photo_url: Mapped[str] = mapped_column(String(255), nullable=True)
+    # ── Additional columns (added via migration) ──────────────────────────────
+    shelter_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("shelters.sid", ondelete="SET NULL"), nullable=True
+    )
+    shelter = relationship("Shelter", backref="shelter_cattle")
 
-    # 🔹 Relationship to VetEvent (this was missing)
+    weight: Mapped[float | None] = mapped_column(Float, nullable=True)
+    health_condition: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    purchased_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    source: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    photo_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # ──────────────────────────────────────────────────────────────────────────
+
+    # Relationship to VetEvent
     events = relationship(
         "VetEvent",
         back_populates="cattle",

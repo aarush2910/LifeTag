@@ -9,3 +9,5 @@ from app.models import complaint
 # Ensure new models are imported so they are registered on Base.metadata
 from app.models import cattle
 from app.models import notification
+from app.models import shelter_intake
+from app.models import vet_availability

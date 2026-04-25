@@ -4,7 +4,7 @@ from app.db.session import get_db
 from app.utils.file import allowed_file, save_upload_file
 from app.schemas.complaint import CattleComplaintCreate, CattleComplaintRead
 from app.models.complaint import CattleComplaint
-from app.tasks.email_tasks import schedule_cattle_complaint_email
+from app.tasks.email_tasks import schedule_cattle_complaint_email, schedule_admin_complaint_notification
 from datetime import datetime
 import logging
 from app.core.redis_client import cache_get, cache_set, cache_delete_pattern
@@ -16,7 +16,7 @@ async def create_cattle_complaint(
     background_tasks: BackgroundTasks,
     reporter_name: str = Form(...),
     reporter_phone: str = Form(...),
-    reporter_email: str | None = Form(None),
+    reporter_email: str = Form(...),
     reporter_location: str = Form(...),
     cattle_count: int = Form(...),
     cattle_type: str = Form(...),
@@ -69,12 +69,19 @@ async def create_cattle_complaint(
         await db.commit()
         await db.refresh(new)
 
-        # schedule complaint notification email using FastAPI BackgroundTasks
+        # Schedule reporter confirmation email
         try:
             if new.reporter_email:
                 schedule_cattle_complaint_email(background_tasks, new)
         except Exception:
-            logging.exception("Failed to schedule/send complaint notification email")
+            logging.exception("Failed to schedule reporter complaint email")
+
+        # Notify admin at lifetag.support@gmail.com
+        try:
+            schedule_admin_complaint_notification(background_tasks, new)
+        except Exception:
+            logging.exception("Failed to schedule admin complaint notification")
+
 
         # Invalidate complaints cache (list/single)
         try:

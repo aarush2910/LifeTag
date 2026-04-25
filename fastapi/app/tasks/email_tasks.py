@@ -104,6 +104,13 @@ def schedule_welcome_shelter_email(background_tasks: BackgroundTasks, new_user):
         <hr style="margin: 20px 0;">
         <p>Dear <b>{new_user.sname}</b>,</p>
         <p>Your shelter account has been successfully created. You can now manage shelter listings, coordinate rescues, and receive alerts from LifeTag.</p>
+        <div style="margin: 16px 0; padding: 12px 14px; background: #f1f7ff; border: 1px solid #d7e9ff; border-radius: 8px;">
+          <p style="margin: 0 0 6px 0; font-size: 13px; color: #333;">Your generated Shelter ID:</p>
+          <p style="margin: 0; font-size: 18px; font-weight: 700; letter-spacing: 0.5px; color: #1254a8;">
+            {new_user.sregistration}
+          </p>
+        </div>
+        <p style="margin: 6px 0 0 0; color: #444;">Please keep this Shelter ID safe. You can use it to log in to your Shelter Dashboard.</p>
         <p style="margin-top: 30px;">Warm regards,<br><b>The LifeTag Support Team</b></p>
       </div>
     </body>
@@ -266,3 +273,65 @@ async def send_cattle_complaint_email(complaint):
     import logging
 
     logging.exception("Failed to send complaint notification email")
+
+
+def schedule_admin_complaint_notification(background_tasks: BackgroundTasks, complaint):
+    """
+    Send a detailed complaint report to lifetag.support@gmail.com
+    whenever a new complaint is registered on the platform.
+    """
+    import html as html_lib
+
+    safe = lambda v: html_lib.escape(str(v)) if v else "—"
+
+    maps_link = ""
+    if complaint.gps_latitude and complaint.gps_longitude:
+        maps_link = (
+            f'<a href="https://maps.google.com/?q={complaint.gps_latitude},{complaint.gps_longitude}" '
+            f'style="color:#2c7be5;">View on Google Maps</a>'
+        )
+
+    admin_html = f"""<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; background-color: #f4f7fa; padding: 20px; margin: 0;">
+  <div style="max-width: 680px; margin: auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.12);">
+    <div style="background: #dc2626; padding: 24px 32px;">
+      <h1 style="color: #fff; margin: 0; font-size: 22px;">&#x1F6A8; New Cattle Complaint Received</h1>
+      <p style="color: #fecaca; margin: 6px 0 0; font-size: 14px;">Complaint ID: <b>{safe(complaint.complaint_id)}</b></p>
+    </div>
+    <div style="padding: 32px;">
+      <table style="width:100%; border-collapse: collapse; margin-bottom: 24px;">
+        <tr><td colspan="2" style="padding:8px 0;border-bottom:2px solid #f1f5f9;font-weight:700;font-size:15px;color:#1e293b;">&#x1F464; Reporter Information</td></tr>
+        <tr style="background:#f8fafc;"><td style="padding:10px 8px;color:#64748b;font-size:13px;width:40%;">Name</td><td style="padding:10px 8px;font-size:13px;font-weight:600;">{safe(complaint.reporter_name)}</td></tr>
+        <tr><td style="padding:10px 8px;color:#64748b;font-size:13px;">Phone</td><td style="padding:10px 8px;font-size:13px;font-weight:600;">{safe(complaint.reporter_phone)}</td></tr>
+        <tr style="background:#f8fafc;"><td style="padding:10px 8px;color:#64748b;font-size:13px;">Email</td><td style="padding:10px 8px;font-size:13px;font-weight:600;">{safe(complaint.reporter_email)}</td></tr>
+        <tr><td style="padding:10px 8px;color:#64748b;font-size:13px;">Reporter Location</td><td style="padding:10px 8px;font-size:13px;">{safe(complaint.reporter_location)}</td></tr>
+      </table>
+      <table style="width:100%; border-collapse: collapse; margin-bottom: 24px;">
+        <tr><td colspan="2" style="padding:8px 0;border-bottom:2px solid #f1f5f9;font-weight:700;font-size:15px;color:#1e293b;">&#x1F404; Cattle Details</td></tr>
+        <tr style="background:#f8fafc;"><td style="padding:10px 8px;color:#64748b;font-size:13px;width:40%;">Type</td><td style="padding:10px 8px;font-size:13px;font-weight:600;">{safe(complaint.cattle_type)}</td></tr>
+        <tr><td style="padding:10px 8px;color:#64748b;font-size:13px;">Count</td><td style="padding:10px 8px;font-size:13px;font-weight:600;">{safe(complaint.cattle_count)}</td></tr>
+        <tr style="background:#f8fafc;"><td style="padding:10px 8px;color:#64748b;font-size:13px;">Condition</td><td style="padding:10px 8px;font-size:13px;"><span style="background:#fef2f2;color:#dc2626;padding:2px 10px;border-radius:20px;font-weight:600;">{safe(complaint.cattle_condition)}</span></td></tr>
+        <tr><td style="padding:10px 8px;color:#64748b;font-size:13px;">Date Spotted</td><td style="padding:10px 8px;font-size:13px;">{safe(complaint.spotted_date)}</td></tr>
+        <tr style="background:#f8fafc;"><td style="padding:10px 8px;color:#64748b;font-size:13px;">Description</td><td style="padding:10px 8px;font-size:13px;">{safe(complaint.description) if complaint.description else "—"}</td></tr>
+        <tr><td style="padding:10px 8px;color:#64748b;font-size:13px;">Photo Attached</td><td style="padding:10px 8px;font-size:13px;">{"&#x2705; Yes" if complaint.photo_path else "&#x274C; No"}</td></tr>
+      </table>
+      <table style="width:100%; border-collapse: collapse; margin-bottom: 24px;">
+        <tr><td colspan="2" style="padding:8px 0;border-bottom:2px solid #f1f5f9;font-weight:700;font-size:15px;color:#1e293b;">&#x1F4CD; Location Details</td></tr>
+        <tr style="background:#f8fafc;"><td style="padding:10px 8px;color:#64748b;font-size:13px;width:40%;">Exact Location</td><td style="padding:10px 8px;font-size:13px;">{safe(complaint.exact_location)}</td></tr>
+        <tr><td style="padding:10px 8px;color:#64748b;font-size:13px;">Nearest Landmark</td><td style="padding:10px 8px;font-size:13px;">{safe(complaint.nearest_landmark) if complaint.nearest_landmark else "—"}</td></tr>
+        <tr style="background:#f8fafc;"><td style="padding:10px 8px;color:#64748b;font-size:13px;">GPS</td><td style="padding:10px 8px;font-size:13px;">{f"{complaint.gps_latitude}, {complaint.gps_longitude}" if complaint.gps_latitude else "Not provided"}<br/>{maps_link}</td></tr>
+      </table>
+      <p style="font-size:12px;color:#94a3b8;text-align:center;margin-top:16px;">Auto-generated by <b>LifeTag Platform</b>. Do not reply to this email.</p>
+    </div>
+  </div>
+</body>
+</html>"""
+
+    background_tasks.add_task(
+        send_email,
+        f"[LifeTag Alert] New Complaint — {complaint.cattle_type} | {complaint.cattle_condition} | {complaint.exact_location[:40] if complaint.exact_location else ''}",
+        "lifetag.support@gmail.com",
+        admin_html,
+        True,
+    )

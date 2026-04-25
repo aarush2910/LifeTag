@@ -1,5 +1,5 @@
-from pydantic import BaseModel , ConfigDict
-from datetime import date
+from pydantic import BaseModel, ConfigDict
+from datetime import date, datetime
 import uuid
 
 
@@ -9,7 +9,7 @@ class VetHealthRecordBase(BaseModel):
     medicines: str | None = None
     follow_up_date: date | None = None
     remarks: str | None = None
-    cattle_id: str      # form me jo field hai
+    cattle_id: str
 
 
 class VetHealthRecordCreate(VetHealthRecordBase):
@@ -18,10 +18,9 @@ class VetHealthRecordCreate(VetHealthRecordBase):
 
 class VetHealthRecordResponse(VetHealthRecordBase):
     health_record_id: uuid.UUID
-    appointment_code: str   # backend fill karega
-    inaph_id: str           # backend fill karega
+    appointment_code: str
+    inaph_id: str
+    created_at: datetime | None = None
 
-    class Config:
-        orm_mode = True
-        # Pydantic v2 ho to:
-        # from_attributes = True
+    # Pydantic v2: enables reading from SQLAlchemy ORM objects
+    model_config = ConfigDict(from_attributes=True)

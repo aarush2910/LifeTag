@@ -101,3 +101,27 @@ class AppointmentCreateWithIds(AppointmentCreate):
         if not cid and not ctag:
             raise ValueError("Either `cattle_id` or `cattle_tag_id` must be provided in the request body.")
         return values
+
+
+class VetAvailabilityUpdate(BaseModel):
+    available_date: date
+    work_start: str
+    work_end: str
+    slot_minutes: int
+
+
+class VetAvailabilityResponse(BaseModel):
+    vet_id: UUID
+    available_date: date
+    work_start: str
+    work_end: str
+    slot_minutes: int
+
+
+class AvailableSlotsResponse(BaseModel):
+    vet_id: UUID
+    appointment_date: date
+    work_start: str
+    work_end: str
+    slot_minutes: int
+    slots: List[str]

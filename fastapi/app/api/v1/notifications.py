@@ -30,6 +30,17 @@ def _resolve_user_id_from_request(request: Request) -> UUID:
         raise HTTPException(status_code=400, detail="x-user-id must be a valid UUID")
 
 
+def _try_resolve_user_id(request: Request):
+    """Like _resolve_user_id_from_request but returns None instead of raising."""
+    raw = request.headers.get("x-user-id")
+    if not raw or not raw.strip():
+        return None
+    try:
+        return UUID(raw)
+    except Exception:
+        return None
+
+
 @router.get("/", response_model=NotificationListResponse)
 async def get_notifications(
     request: Request,
@@ -56,7 +67,10 @@ async def get_notifications(
 
 @router.get("/unread-count", response_model=UnreadCountResponse)
 async def get_unread_count(request: Request, db: AsyncSession = Depends(get_db)):
-    user_id = _resolve_user_id_from_request(request)
+    user_id = _try_resolve_user_id(request)
+    # If no valid user ID, silently return 0 (vet/unauthenticated sessions)
+    if not user_id:
+        return UnreadCountResponse(unread_count=0)
     count = await unread_count(db, user_id=user_id)
     return UnreadCountResponse(unread_count=count)
 

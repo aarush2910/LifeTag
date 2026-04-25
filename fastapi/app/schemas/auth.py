@@ -5,8 +5,10 @@ from uuid import UUID
 
 
 class FarmerCattleSummary(BaseModel):
+    cid: Optional[UUID] = None
     cattle_name: Optional[str] = None
     breed: Optional[str] = None
+    local_cattle_id: Optional[str] = None
     # Map cattle_tag_id to the Cattle.inaph_tag_id attribute via alias.
     cattle_tag_id: Optional[str] = Field(default=None, alias="inaph_tag_id")
 
@@ -22,6 +24,15 @@ class FarmerCreate(BaseModel):
     farmname: str
     farmtype: str
     password: str
+
+
+class FarmerUpdate(BaseModel):
+    fname: Optional[str] = None
+    fphone: Optional[str] = None
+    femail: Optional[EmailStr] = None
+    faddress: Optional[str] = None
+    farmname: Optional[str] = None
+    farmtype: Optional[str] = None
 
 class FarmerResponse(BaseModel):
     fid: UUID

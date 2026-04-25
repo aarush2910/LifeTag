@@ -10,11 +10,11 @@ from app.models.vet_appointment import Appointment
 from app.core.redis_client import cache_get, cache_set, cache_delete_pattern
 from app.tasks.notification_tasks import schedule_prescription_notification
 
-router = APIRouter( tags=["Vet Health Record"])
+router = APIRouter(tags=["Vet Health Record"])
 
 
 # 🩺 Create new health record FOR AN APPOINTMENT
-@router.post("/ ", response_model=VetHealthRecordResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=VetHealthRecordResponse, status_code=status.HTTP_201_CREATED)
 async def add_health_record(
     appointment_code: str,
     record: VetHealthRecordCreate,
@@ -22,7 +22,7 @@ async def add_health_record(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        # 1️⃣ Appointment fetch karo + farmer + cattle saath me lao
+        # 1️⃣ Fetch appointment with farmer + cattle eager-loaded
         stmt = (
             select(Appointment)
             .options(
@@ -43,13 +43,11 @@ async def add_health_record(
                 detail="Appointment is not linked to farmer or cattle properly",
             )
 
-        # 2️⃣ Appointment se inaph_id & cattle info nikaalo
+        # 2️⃣ Extract identifiers
         inaph_id = appt.farmer.inaph_id
-        # form se cattle_id aa raha hai, lekin agar tum tag_id use karna chaho:
-        # cattle_id = appt.cattle.tag_id
         cattle_id = record.cattle_id
 
-        # 3️⃣ Health record create karo
+        # 3️⃣ Build and save health record
         data = record.model_dump() if hasattr(record, "model_dump") else record.dict()
 
         new_record = VetHealthRecord(
@@ -65,25 +63,31 @@ async def add_health_record(
 
         db.add(new_record)
         await db.commit()
-        await db.refresh(new_record)
+
+        # Do NOT call db.refresh(new_record) — Neon closes the connection after commit,
+        # which makes refresh() fail with ConnectionDoesNotExistError.
+        # Re-query with a fresh SELECT using the known primary key instead.
+        record_id = new_record.health_record_id
+        saved = await db.scalar(
+            select(VetHealthRecord).where(VetHealthRecord.health_record_id == record_id)
+        )
 
         schedule_prescription_notification(
             background_tasks,
             user_id=appt.owner_id,
             appointment_code=appt.appointment_code,
             follow_up_date=new_record.follow_up_date,
-            health_record_id=new_record.health_record_id,
+            health_record_id=record_id,
         )
 
-        # Invalidate health records caches
         try:
             await cache_delete_pattern("vet_health:*")
         except Exception:
             pass
-        return new_record
+
+        return saved or new_record
 
     except HTTPException:
-        # direct raise wali cases yahi re-throw
         raise
     except Exception as e:
         await db.rollback()
@@ -147,6 +151,30 @@ async def get_by_cattle(cattle_id: str, db: AsyncSession = Depends(get_db)):
     payload = [VetHealthRecordResponse.model_validate(r).model_dump() for r in records]
     try:
         await cache_set(cache_key, payload, ttl=600)
+    except Exception:
+        pass
+    return payload
+
+
+# 👨‍🌾 Get health records for a farmer (by inaph_id) — used in farmer prescriptions page
+@router.get("/farmer/{inaph_id}", response_model=list[VetHealthRecordResponse])
+async def get_by_farmer_inaph(inaph_id: str, db: AsyncSession = Depends(get_db)):
+    """Returns all health/prescription records for a farmer's INAPH ID."""
+    cache_key = f"vet_health:farmer_inaph:{inaph_id}"
+    cached = await cache_get(cache_key)
+    if cached:
+        return cached
+    result = await db.scalars(
+        select(VetHealthRecord)
+        .where(VetHealthRecord.inaph_id == inaph_id)
+        .order_by(VetHealthRecord.created_at.desc())
+    )
+    records = result.all()
+    if not records:
+        return []
+    payload = [VetHealthRecordResponse.model_validate(r).model_dump() for r in records]
+    try:
+        await cache_set(cache_key, payload, ttl=300)
     except Exception:
         pass
     return payload

@@ -11,8 +11,12 @@ async def send_email(subject: str, to_email: str, body: str, is_html: bool = Fal
     HTML-capable email clients.
     """
     msg = EmailMessage()
-    # Prefer a readable From header (Name <email>) if available
-    from_header = settings.MAIL_USERNAME
+    # Build the From header: "Display Name <address>"
+    # MAIL_FROM (if set) overrides the address shown; falls back to MAIL_USERNAME.
+    # Note: Gmail SMTP still authenticates via MAIL_USERNAME regardless of MAIL_FROM.
+    from_address = settings.MAIL_FROM or settings.MAIL_USERNAME or ""
+    from_name = settings.MAIL_FROM_NAME or "LifeTag Support"
+    from_header = f"{from_name} <{from_address}>"
     msg["From"] = from_header
     msg["To"] = to_email
     msg["Subject"] = subject
@@ -57,5 +61,9 @@ async def send_email(subject: str, to_email: str, body: str, is_html: bool = Fal
             use_tls=settings.MAIL_USE_SSL,
             start_tls=settings.MAIL_USE_TLS,
         )
+        print(f"[MAILER] ✅ Email sent successfully → {to_email} | Subject: {subject}")
     except Exception as e:
-        print(f"Mail sending failed: {e}")
+        import traceback
+        print(f"[MAILER] ❌ Mail sending FAILED → {to_email}")
+        print(f"[MAILER]    Error: {e}")
+        traceback.print_exc()

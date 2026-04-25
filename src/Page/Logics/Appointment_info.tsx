@@ -65,6 +65,15 @@ type FarmerInfo = {
   cattles?: CattleSummary[] | null;
 };
 
+type AvailableSlotsResponse = {
+  vet_id: string;
+  appointment_date: string;
+  work_start: string;
+  work_end: string;
+  slot_minutes: number;
+  slots: string[];
+};
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 export default function AddAppointmentWithSidebar() {
@@ -88,8 +97,9 @@ export default function AddAppointmentWithSidebar() {
             </div>
           </motion.header>
 
-          <motion.div className="flex flex-1 flex-col gap-4 p-6 pt-6 min-h-screen bg-gray-50">
-            <div className="max-w-5xl w-full mx-auto">
+          <motion.div className="flex flex-1 flex-col gap-6 p-6 pt-6 bg-background min-h-screen">
+            <div className="max-w-5xl w-full mx-auto space-y-6">
+              {/* Schedule form */}
               <Card className="overflow-hidden shadow-lg border">
                 <CardHeader className="bg-primary/80 text-primary-foreground p-6">
                   <CardTitle className="text-2xl font-bold">
@@ -100,7 +110,6 @@ export default function AddAppointmentWithSidebar() {
                     Fields with * are required.
                   </p>
                 </CardHeader>
-
                 <CardContent>
                   <AddAppointmentFormInline />
                 </CardContent>
@@ -112,6 +121,8 @@ export default function AddAppointmentWithSidebar() {
     </div>
   );
 }
+
+
 
 function AddAppointmentFormInline() {
   const [form, setForm] = useState<Partial<AppointmentCreatePayload>>({
@@ -136,6 +147,9 @@ function AddAppointmentFormInline() {
   const [farmerInfo, setFarmerInfo] = useState<FarmerInfo | null>(null);
   const [farmerLoading, setFarmerLoading] = useState(false);
   const [farmerFetchError, setFarmerFetchError] = useState<string | null>(null);
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotHint, setSlotHint] = useState<string>("");
 
   const steps = ["Farmer & Cattle", "Symptoms & Schedule"];
 
@@ -285,6 +299,44 @@ function AddAppointmentFormInline() {
     setForm((p) => ({ ...p, [key]: value }));
   };
 
+  const fetchAvailableSlots = async (vetId?: string, appointmentDate?: string) => {
+    if (!vetId || !appointmentDate) {
+      setAvailableSlots([]);
+      setSlotHint("");
+      return;
+    }
+    try {
+      setSlotsLoading(true);
+      const res = await fetch(
+        `${API_BASE}/api/vet/appointments/availability/${encodeURIComponent(
+          vetId
+        )}?appointment_date=${encodeURIComponent(appointmentDate)}`
+      );
+      const data = (await res.json()) as AvailableSlotsResponse;
+      if (!res.ok) throw new Error((data as any)?.detail || "Failed to load slots");
+      setAvailableSlots(data.slots || []);
+      if (!data.work_start || !data.work_end || data.slot_minutes <= 0) {
+        setSlotHint("Vet has not configured availability for this date.");
+      } else if ((data.slots || []).length === 0) {
+        setSlotHint(`All slots are booked for this date (${data.work_start}-${data.work_end}).`);
+      } else {
+        setSlotHint(`Showing ${data.slots.length} slots (${data.work_start}-${data.work_end}, ${data.slot_minutes} min).`);
+      }
+    } catch (err) {
+      console.error("Failed to fetch slots", err);
+      setAvailableSlots([]);
+      setSlotHint("Unable to fetch slots right now. Please try again.");
+    } finally {
+      setSlotsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAvailableSlots(form.vet_id, form.appointment_date);
+    // reset selected slot if date changes
+    setForm((prev) => ({ ...prev, time_slot: "" }));
+  }, [form.vet_id, form.appointment_date]);
+
   const validate = (): string | null => {
     if (!form.symptoms || form.symptoms.trim() === "")
       return "Please describe the symptoms.";
@@ -362,79 +414,111 @@ function AddAppointmentFormInline() {
     setLoading(true);
     setCreated(null);
     try {
-      // Ensure owner_id & vet_id are filled (try to re-read from localStorage)
-      if (!form.owner_id) {
-        const raw = localStorage.getItem("user");
-        let storageOwner: string | null = null;
-        try {
-          if (raw) storageOwner = JSON.parse(raw).user_id;
-        } catch {}
-        storageOwner =
-          storageOwner ||
-          localStorage.getItem("farmerId") ||
-          localStorage.getItem("user_id");
-        if (storageOwner) setForm((p) => ({ ...p, owner_id: storageOwner }));
-      }
-      if (!form.vet_id) {
-        const storageVet = localStorage.getItem("vet_id");
-        if (storageVet) setForm((p) => ({ ...p, vet_id: storageVet }));
-      }
+      // ── Read IDs directly from localStorage at submit time ──────────────
+      // React's setForm is async; reading form.owner_id / form.vet_id after
+      // calling setForm gives STALE values. Read storage directly here.
+      let rawUser: any = null;
+      try { rawUser = JSON.parse(localStorage.getItem("user") || "null"); } catch {}
 
-      // small delay to let setForm update (rare race) - optional, but safe
-      await new Promise((res) => setTimeout(res, 0));
+      const freshOwnerId: string | null =
+        rawUser?.user_id ||
+        localStorage.getItem("farmerId") ||
+        localStorage.getItem("user_id") ||
+        form.owner_id ||
+        null;
 
-      const err = validate();
-      if (err) {
-        alert(err);
-        setLoading(false);
-        return;
+      const freshVetId: string | null =
+        localStorage.getItem("vet_id") ||
+        form.vet_id ||
+        null;
+
+      const freshInaphId: string | null =
+        rawUser?.inaph_id ||
+        localStorage.getItem("inaph_id") ||
+        form.inaph_id ||
+        null;
+
+      // Validate required fields
+      if (!form.symptoms?.trim()) {
+        alert("Please describe the symptoms."); setLoading(false); return;
+      }
+      if (!form.appointment_date) {
+        alert("Please choose an appointment date."); setLoading(false); return;
+      }
+      if (isPastDate(form.appointment_date)) {
+        alert("Appointment date cannot be in the past."); setLoading(false); return;
+      }
+      if (!form.time_slot?.trim()) {
+        alert("Please select a time slot."); setLoading(false); return;
+      }
+      if (!freshOwnerId && !freshInaphId) {
+        alert("Could not identify you as a farmer. Please log out and log back in."); setLoading(false); return;
+      }
+      if (!form.cattle_tag_id && !form.cattle_id) {
+        alert("Please select a cattle."); setLoading(false); return;
+      }
+      if (!freshVetId) {
+        alert("No vet selected. Please go back and choose a vet."); setLoading(false); return;
       }
 
       const payload: any = {
-        vet_id: form.vet_id,
-        owner_id: form.owner_id,
+        vet_id: freshVetId,
+        owner_id: freshOwnerId ?? undefined,
         symptoms: form.symptoms,
         appointment_date: form.appointment_date,
         time_slot: form.time_slot,
-        status: form.status ?? "Pending",
       };
 
-      if (form.inaph_id) payload.inaph_id = form.inaph_id;
+      if (freshInaphId)    payload.inaph_id    = freshInaphId;
       if (form.cattle_tag_id) payload.cattle_tag_id = form.cattle_tag_id;
-      if (form.cattle_id) payload.cattle_id = form.cattle_id;
-      if (form.remarks) payload.remarks = form.remarks;
-      if (form.farmer_name) payload.farmer_name = form.farmer_name;
+      if (form.cattle_id)    payload.cattle_id   = form.cattle_id;
+      if (form.remarks)      payload.remarks     = form.remarks;
+      if (form.farmer_name)  payload.farmer_name = form.farmer_name;
       if (form.cattle_breed) payload.cattle_breed = form.cattle_breed;
 
-      // Remove undefined
+      // Remove undefined/null keys
       Object.keys(payload).forEach(
-        (k) => payload[k] === undefined && delete payload[k]
+        (k) => (payload[k] === undefined || payload[k] === null) && delete payload[k]
       );
 
-      // LOG the payload to inspect what frontend sends
-      console.log("Sending appointment payload:", payload);
+      console.log("📤 Appointment payload:", payload);
 
       const token =
         localStorage.getItem("access_token") ||
         localStorage.getItem("token") ||
         "";
 
-      const res = await fetch(
-        `${API_BASE}/api/vet/appointments/create-appointment`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      let res: Response;
+      try {
+        res = await fetch(
+          `${API_BASE}/api/vet/appointments/create-appointment`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify(payload),
+          }
+        );
+      } catch (netErr: any) {
+        // Network-level failure (server down, CORS, etc.)
+        console.error("Network error on appointment create:", netErr);
+        alert(`Network error: Could not reach the server.\nMake sure the backend is running at ${API_BASE}`);
+        setLoading(false);
+        return;
+      }
 
-      const data = await res.json();
+      let data: any = null;
+      try { data = await res.json(); } catch {}
+
       if (!res.ok) {
         const message =
-          data?.detail || data?.message || "Failed to create appointment";
+          (Array.isArray(data?.detail)
+            ? data.detail.map((d: any) => d.msg).join(", ")
+            : data?.detail) ||
+          data?.message ||
+          `Server error (${res.status})`;
         throw new Error(message);
       }
 
@@ -444,8 +528,6 @@ function AddAppointmentFormInline() {
           data?.appointment_code ? ` — Code: ${data.appointment_code}` : ""
         }`
       );
-
-      // Clear only form fields; keep farmerInfo (so dropdown persists)
       resetForm();
     } catch (err: any) {
       console.error("Error creating appointment:", err);
@@ -454,6 +536,7 @@ function AddAppointmentFormInline() {
       setLoading(false);
     }
   };
+
 
   const fadeUp = {
     hidden: { opacity: 0, y: 30 },
@@ -675,15 +758,43 @@ function AddAppointmentFormInline() {
 
                 <div className="space-y-2">
                   <Label>Time Slot *</Label>
-                  <Input
+                  <select
+                    className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     value={form.time_slot ?? ""}
-                    onChange={(e: any) =>
-                      handleChange("time_slot", e.target.value)
-                    }
-                    placeholder="e.g. 10:00-11:00"
+                    onChange={(e) => handleChange("time_slot", e.target.value)}
                     required
-                    className="h-11"
-                  />
+                  >
+                    <option value="">
+                      {slotsLoading
+                        ? "Loading slots..."
+                        : !form.appointment_date
+                        ? "Select appointment date first"
+                        : "Select available time slot"}
+                    </option>
+                    {availableSlots.map((slot) => (
+                      <option key={slot} value={slot}>
+                        {slot}
+                      </option>
+                    ))}
+                  </select>
+                  {form.appointment_date && !slotsLoading && availableSlots.length === 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-amber-600">
+                        No available slots for this date. Please select another date.
+                      </p>
+                      <p className="text-xs text-primary">
+                        Ask the selected vet to set availability in their dashboard.
+                      </p>
+                      {form.vet_id && (
+                        <p className="text-[11px] text-muted-foreground">
+                          Selected Vet ID: {form.vet_id}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {slotHint && (
+                    <p className="text-xs text-muted-foreground">{slotHint}</p>
+                  )}
                 </div>
               </motion.div>
             )}

@@ -109,7 +109,7 @@ interface AdoptionApp {
                   {applications.map((app) => (
                     <li
                       key={app.appId}
-                      className="p-4 border rounded hover:bg-gray-50 cursor-pointer"
+                      className="p-4 border rounded hover:bg-muted cursor-pointer"
                       onClick={() => setSelectedApp(app)}
                     >
                       <div className="flex justify-between">

@@ -75,7 +75,8 @@ import {
 } from "../components/ui/table";
 
 export type Appointment = {
-  appointment_id: string;      // map appointment_code → appointment_id
+  aid: string;                 // real UUID — used for API calls
+  appointment_id: string;      // human-readable appointment_code — display only
   farmer_name: string;
   cattle_name: string;         // map cattle_cid_short (or local_cattle_id)
   cattle_tag_id: string;
@@ -93,7 +94,7 @@ const multiColumnFilterFn: FilterFn<Appointment> = (
   row,
   filterValue
 ) => {
-  const searchableRowContent = `${row.original.farmer_name} ${row.original.cattle_tag_id}`.toLowerCase();
+  const searchableRowContent = `${row.original.farmer_name} ${row.original.cattle_tag_id} ${row.original.cattle_name} ${row.original.inaph_id}`.toLowerCase();
   const searchTerm = (filterValue ?? "").toLowerCase();
   return searchableRowContent.includes(searchTerm);
 };
@@ -185,16 +186,17 @@ const columns: ColumnDef<Appointment>[] = [
   {
     id: "actions",
     header: () => <span className="sr-only">Actions</span>,
-    cell: ({ row }) => <RowActions row={row} />,
+    cell: ({ row, table }) => <RowActions row={row} onDelete={(table.options.meta as any)?.onDelete} />,
     enableHiding: false,
   },
 ];
 
-type VetTableProps = {
+export type VetTableProps = {
   data: Appointment[];
+  onDelete?: (aid: string) => void;
 };
 
-export default function VetTable({ data }: VetTableProps) {
+export default function VetTable({ data, onDelete }: VetTableProps) {
   const id = useId();
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -230,6 +232,7 @@ export default function VetTable({ data }: VetTableProps) {
       columnFilters,
       columnVisibility,
     },
+    meta: { onDelete },
   });
 
   // Get unique status values
@@ -594,52 +597,238 @@ export default function VetTable({ data }: VetTableProps) {
   );
 }
 
-function RowActions({ row }: { row: Row<Appointment> }) {
+// ─── Appointment Modal ────────────────────────────────────────────────────────
+function AppointmentModal({ type, data, onClose, onConfirm }: {
+  type: "view" | "error" | "confirm" | "clear";
+  data: any;
+  onClose: () => void;
+  onConfirm?: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={(e) => { if (e.currentTarget === e.target) onClose(); }}
+    >
+      <div className="bg-background border border-border rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        {/* Header */}
+        <div className={`flex items-center justify-between px-6 py-4 border-b ${
+          type === "error" ? "bg-red-50 dark:bg-red-900/20" :
+          type === "confirm" ? "bg-orange-50 dark:bg-orange-900/20" :
+          type === "clear" ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/30"
+        }`}>
+          <h2 className="font-semibold text-base">
+            {type === "view" ? "Appointment Details" :
+             type === "error" ? "⚠ Action Failed" :
+             type === "clear" ? "🗑 Clear Appointment" : "⚠ Confirm Cancellation"}
+          </h2>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
+            ✕
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6">
+          {type === "view" && (
+            <div className="space-y-3">
+              {[
+                ["Appointment ID", data?.appointment_id],
+                ["Farmer", data?.farmer_name],
+                ["Cattle", `${data?.cattle_name} (${data?.cattle_tag_id})`],
+                ["INAPH ID", data?.inaph_id],
+                ["Symptoms", data?.symptoms],
+                ["Date & Time", `${data?.appointment_date} ${data?.time_slot}`],
+                ["Status", data?.status],
+                ["Remarks", data?.remarks || "None"],
+              ].map(([label, value]) => (
+                <div key={label} className="flex gap-3">
+                  <span className="text-xs font-medium text-muted-foreground w-28 shrink-0 pt-0.5">{label}</span>
+                  <span className="text-sm font-medium break-words">{value || "—"}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {type === "error" && (
+            <p className="text-sm text-red-600 dark:text-red-400">{data?.message || "Something went wrong. Please try again."}</p>
+          )}
+          {type === "confirm" && (
+            <p className="text-sm text-foreground">Are you sure you want to cancel appointment <span className="font-mono font-bold">{data?.appointment_id}</span>? This action cannot be undone.</p>
+          )}
+          {type === "clear" && (
+            <p className="text-sm text-foreground">Permanently remove <span className="font-mono font-bold">{data?.appointment_id}</span> from your list? The appointment record will be deleted from the database.</p>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-3 px-6 pb-6">
+          {type === "view" && (
+            <button onClick={onClose} className="w-full px-4 py-2 rounded-lg border bg-background hover:bg-muted text-sm font-medium transition-colors">Close</button>
+          )}
+          {type === "error" && (
+            <button onClick={onClose} className="w-full px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors">Dismiss</button>
+          )}
+          {type === "confirm" && (
+            <>
+              <button onClick={onClose} className="flex-1 px-4 py-2 rounded-lg border bg-background hover:bg-muted text-sm font-medium transition-colors">Keep Appointment</button>
+              <button onClick={onConfirm} className="flex-1 px-4 py-2 rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground text-sm font-medium transition-colors">Yes, Cancel It</button>
+            </>
+          )}
+          {type === "clear" && (
+            <>
+              <button onClick={onClose} className="flex-1 px-4 py-2 rounded-lg border bg-background hover:bg-muted text-sm font-medium transition-colors">Keep It</button>
+              <button onClick={onConfirm} className="flex-1 px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium transition-colors">Yes, Clear It</button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RowActions({ row, onDelete }: { row: Row<Appointment>; onRefresh?: () => void; onDelete?: (aid: string) => void }) {
   const appointment = row.original;
+  const [loading, setLoading] = useState(false);
+  const [modal, setModal] = useState<{ type: "view" | "error" | "confirm" | "clear"; data: any } | null>(null);
 
-  const handleAccept = () => {
-    console.log("Accept appointment:", appointment.appointment_id);
+  const getUser = () => { try { return JSON.parse(localStorage.getItem("user") || "{}"); } catch { return {}; } };
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+
+  const navTo = (path: string) => { window.location.href = path; };
+
+  const callApi = async (method: string, url: string, sendBody?: boolean) => {
+    const user = getUser();
+    const token = user.access_token || user.token || "";
+    setLoading(true);
+    try {
+      const headers: Record<string, string> = {
+        Authorization: `Bearer ${token}`,
+      };
+      // Only set Content-Type when actually sending a body
+      if (sendBody) headers["Content-Type"] = "application/json";
+
+      const res = await fetch(url, {
+        method,
+        headers,
+        body: sendBody ? JSON.stringify({ status: "Approved" }) : undefined,
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        const detail = d.detail;
+        const msg = Array.isArray(detail)
+          ? detail.map((e: any) => e.msg || JSON.stringify(e)).join(", ")
+          : typeof detail === "string" ? detail : JSON.stringify(d) || "Request failed";
+        throw new Error(msg);
+      }
+      if (res.status === 204) return null;
+      return await res.json();
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleComplete = () => {
-    console.log("Complete appointment:", appointment.appointment_id);
+  const handleAccept = async () => {
+    try {
+      await callApi("PUT", `${API_BASE}/api/vet/appointments/${appointment.aid}/accept`);
+      const params = new URLSearchParams({
+        appointment_code: appointment.appointment_id,
+        inaph_id: appointment.inaph_id || "",
+        cattle_id: appointment.cattle_tag_id || "",
+      });
+      // Persist context so the health form survives navigation away and back
+      sessionStorage.setItem(
+        "pendingHealthForm",
+        JSON.stringify({
+          appointment_code: appointment.appointment_id,
+          inaph_id: appointment.inaph_id || "",
+          cattle_id: appointment.cattle_tag_id || "",
+          expires_at: Date.now() + 8 * 3600 * 1000, // 8-hour window
+        })
+      );
+      navTo(`/vet-dashboard/health?${params.toString()}`);
+    } catch (e: any) {
+      setModal({ type: "error", data: { message: `Failed to accept appointment: ${e.message}` } });
+    }
   };
 
-  const handleView = () => {
-    console.log("View appointment:", appointment.appointment_id);
+  const handleComplete = async () => {
+    try {
+      await callApi("PUT", `${API_BASE}/api/vet/appointments/${appointment.aid}/complete`);
+      onRefresh?.();
+    } catch (e: any) {
+      setModal({ type: "error", data: { message: `Failed to complete: ${e.message}` } });
+    }
+  };
+
+  const handleCancelConfirmed = async () => {
+    setModal(null);
+    try {
+      await callApi("PUT", `${API_BASE}/api/vet/appointments/${appointment.aid}/cancel`);
+      onDelete?.(appointment.aid);
+    } catch (e: any) {
+      setModal({ type: "error", data: { message: `Failed to cancel: ${e.message}` } });
+    }
+  };
+
+  const handleClearConfirmed = async () => {
+    setModal(null);
+    try {
+      await callApi("DELETE", `${API_BASE}/api/vet/appointments/clear/${appointment.aid}`);
+      onDelete?.(appointment.aid);
+    } catch (e: any) {
+      setModal({ type: "error", data: { message: `Failed to clear: ${e.message}` } });
+    }
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-8 w-8 shadow-none"
-          aria-label="Actions"
-        >
-          <EllipsisIcon size={16} aria-hidden="true" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuGroup>
-          <DropdownMenuItem onClick={handleView}>View Details</DropdownMenuItem>
-          {appointment.status === "Pending" && (
-            <DropdownMenuItem onClick={handleAccept}>
-              Accept Appointment
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button size="icon" variant="ghost" className="h-8 w-8 shadow-none" aria-label="Actions" disabled={loading}>
+            <EllipsisIcon size={16} aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuGroup>
+            <DropdownMenuItem onClick={() => setModal({ type: "view", data: appointment })}>
+              View Details
+            </DropdownMenuItem>
+            {appointment.status === "Pending" && (
+              <DropdownMenuItem onClick={handleAccept}>Accept Appointment</DropdownMenuItem>
+            )}
+            {appointment.status === "Accepted" && (
+              <DropdownMenuItem onClick={handleComplete}>Mark as Completed</DropdownMenuItem>
+            )}
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          {appointment.status !== "Completed" && appointment.status !== "Cancelled" && (
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={() => setModal({ type: "confirm", data: appointment })}
+            >
+              Cancel Appointment
             </DropdownMenuItem>
           )}
-          {appointment.status === "Accepted" && (
-            <DropdownMenuItem onClick={handleComplete}>
-              Mark as Completed
+          {(appointment.status === "Approved" || appointment.status === "Completed" || appointment.status === "Cancelled") && (
+            <DropdownMenuItem
+              className="text-orange-600 focus:text-orange-600"
+              onClick={() => setModal({ type: "clear", data: appointment })}
+            >
+              Clear from List
             </DropdownMenuItem>
           )}
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-destructive focus:text-destructive">
-          Cancel Appointment
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {modal && (
+        <AppointmentModal
+          type={modal.type}
+          data={modal.data}
+          onClose={() => setModal(null)}
+          onConfirm={
+            modal.type === "confirm" ? handleCancelConfirmed :
+            modal.type === "clear" ? handleClearConfirmed : undefined
+          }
+        />
+      )}
+    </>
   );
 }

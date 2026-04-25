@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { Button } from "../../../components/ui/button";
-import { Input } from "../../../components/ui/input";
-import { Label } from "../../../components/ui/label";
-import { SelectNative } from "../../../components/ui/select-native";
-import Spinner from "../../../components/ui/spinner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { SelectNative } from "@/components/ui/select-native";
+import Spinner from "@/components/ui/spinner";
 
 export default function Events() {
   const [cattleId, setCattleId] = useState("");
@@ -15,22 +15,24 @@ export default function Events() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [cattleList, setCattleList] = useState([]);
+  const [cattleList, setCattleList] = useState<any[]>([]);
 
-  // Fetch cattle list on component mount
+  // Fetch cattle list on component mount — from vet's handled appointments
   useEffect(() => {
     const fetchCattle = async () => {
       try {
         const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
         const user = JSON.parse(localStorage.getItem("user") || "{}");
-        const res = await fetch(`${API_BASE}/api/cattle/list`, {
+        const vetId = user.vet_id || user.user_id || "";
+        const res = await fetch(`${API_BASE}/api/vet/vaccination-events/vet-cattle`, {
           headers: {
-            Authorization: `Bearer ${user.token}`,
+            Authorization: `Bearer ${user.token || user.access_token || ""}`,
+            "x-user-id": vetId,
           },
         });
         const data = await res.json();
         if (res.ok) {
-          setCattleList(data.cattle || []);
+          setCattleList(Array.isArray(data) ? data : []);
         }
       } catch (err) {
         console.error("Failed to fetch cattle:", err);
@@ -57,7 +59,7 @@ export default function Events() {
     try {
       const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
       const user = JSON.parse(localStorage.getItem("user") || "{}");
-      const res = await fetch(`${API_BASE}/api/vaccination-events/create`, {
+      const res = await fetch(`${API_BASE}/api/vet/vaccination-events/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -189,13 +191,14 @@ export default function Events() {
               >
                 <option value="">Choose cattle...</option>
                 {cattleList.map((cattle: any) => (
-                  <option key={cattle.id} value={cattle.id}>
-                    {cattle.tag_id} - {cattle.breed || "Unknown"}
+                  <option key={cattle.cid} value={cattle.cid}>
+                    {cattle.cattle_name} — {cattle.inaph_tag_id || cattle.local_cattle_id || "No Tag"}
+                    {cattle.owner_name ? ` (${cattle.owner_name})` : ""}
                   </option>
                 ))}
               </SelectNative>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                List of vet's past handled cattle
+                Cattle from your approved appointments
               </p>
             </div>
 

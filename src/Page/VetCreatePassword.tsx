@@ -32,7 +32,7 @@ export default function VetCreatePassword() {
     setMessage("");
     try {
       const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
-      const res = await fetch(`${API_BASE}/api/vet/vet/create-password`, {
+      const res = await fetch(`${API_BASE}/api/vet/create-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ license: licenseNo.trim(), new_password: password }),

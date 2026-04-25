@@ -39,13 +39,16 @@ export default function ShelterLogin() {
       const user = {
         role: "shelter",
         shelter_id: shelterId.trim(),
-        shelter_name: data.shelter_name ?? null,
+        shelter_name: data.user_name ?? null,
+        user_id: data.user_id ?? null,
+        token: data.access_token ?? null,
+        access_token: data.access_token ?? null,
       };
       localStorage.setItem("user", JSON.stringify(user));
       if (data.access_token) localStorage.setItem("token", data.access_token);
 
       setMessage("✅ Login successful — redirecting...");
-      navigate("/shelter/dashboard", { replace: true });
+      navigate("/shelter-dashboard", { replace: true });
       setTimeout(() => window.location.reload(), 120);
     } catch (err) {
       setMessage(`❌ ${err instanceof Error ? err.message : String(err)}`);

@@ -9,7 +9,6 @@ import Spinner from "../components/ui/spinner";
 
 export default function ShelterSignup() {
   const [shelterName, setShelterName] = useState("");
-  const [shelterId, setShelterId] = useState("");
   const [contact, setContact] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
@@ -23,8 +22,8 @@ export default function ShelterSignup() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // basic validation
-    if (!shelterName.trim() || !shelterId.trim() || !contact.trim() || !password.trim()) {
-      setMessage("❌ Please fill required fields (name, id, contact, password).");
+    if (!shelterName.trim() || !contact.trim() || !email.trim() || !password.trim()) {
+      setMessage("❌ Please fill required fields (name, contact, email, password).");
       return;
     }
     if (password !== confirm) {
@@ -37,12 +36,11 @@ export default function ShelterSignup() {
 
     try {
       const payload = {
-        shelter_name: shelterName.trim(),
-        shelter_id: shelterId.trim(),
-        contact: contact.trim(),
-        email: email.trim() || null,
-        address: address.trim() || null,
-        capacity: typeof capacity === "number" ? capacity : null,
+        sname: shelterName.trim(),
+        sphone: contact.trim(),
+        semail: email.trim(),
+        saddress: address.trim() || "-",
+        scapacity: typeof capacity === "number" ? capacity : 0,
         password,
       };
 
@@ -57,9 +55,9 @@ export default function ShelterSignup() {
       if (!res.ok) throw new Error(data.detail || "Registration failed");
 
       setMessage("✅ Shelter registered successfully! Redirecting to login...");
+      window.alert("Account created successfully. Please check your email for your generated Shelter ID.");
       // clear minimal fields
       setShelterName("");
-      setShelterId("");
       setContact("");
       setEmail("");
       setAddress("");
@@ -98,8 +96,8 @@ export default function ShelterSignup() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="shelter_id" className="text-sm font-semibold">Shelter ID *</Label>
-            <Input id="shelter_id" placeholder="Unique Shelter ID" value={shelterId} onChange={(e) => setShelterId(e.target.value)} required />
+            <Label className="text-sm font-semibold">Shelter ID</Label>
+            <Input value="Auto-generated and sent via email after signup" disabled />
           </div>
 
           <div className="space-y-2">
@@ -108,8 +106,8 @@ export default function ShelterSignup() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-semibold">Email</Label>
-            <Input id="email" placeholder="optional email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Label htmlFor="email" className="text-sm font-semibold">Email *</Label>
+            <Input id="email" type="email" placeholder="Shelter email address (required)" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
 
           <div className="space-y-2 sm:col-span-2">

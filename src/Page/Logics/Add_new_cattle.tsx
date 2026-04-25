@@ -356,7 +356,7 @@ export default function CattleAddWithSidebar() {
             </div>
           </motion.header>
 
-          <motion.div className="flex flex-1 flex-col gap-4 p-6 pt-6 min-h-screen bg-gray-50">
+          <motion.div className="flex flex-1 flex-col gap-4 p-6 pt-6 min-h-screen bg-background">
             <div className="max-w-5xl w-full mx-auto">
               <Card className="overflow-hidden shadow-lg border">
                 <CardHeader className="bg-primary/80 text-primary-foreground p-6">

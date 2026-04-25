@@ -313,7 +313,7 @@ export default function OwnershipTransferForm() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className="flex flex-1 flex-col gap-4 p-6 pt-6 bg-gray-50 min-h-screen"
+            className="flex flex-1 flex-col gap-4 p-6 pt-6 bg-background min-h-screen"
           >
             <form
               onSubmit={handleSubmit}
@@ -371,7 +371,7 @@ export default function OwnershipTransferForm() {
                           </p>
                         )}
                       </CardHeader>
-                      <CardContent className="grid gap-4 md:grid-cols-2 bg-white">
+                      <CardContent className="grid gap-4 md:grid-cols-2 bg-background">
                         <div className="space-y-3">
                           <div className="space-y-1">
                             <Label htmlFor="current_name">Full Name</Label>
@@ -463,7 +463,7 @@ export default function OwnershipTransferForm() {
                           the cattle.
                         </p>
                       </CardHeader>
-                      <CardContent className="grid gap-4 md:grid-cols-2 bg-white">
+                      <CardContent className="grid gap-4 md:grid-cols-2 bg-background">
                         <div className="space-y-3">
                           <div className="space-y-1">
                             <Label htmlFor="new_name">Full Name</Label>

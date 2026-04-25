@@ -1,5 +1,4 @@
-// import { BarChart3, Calendar, Clock, GraduationCap, HelpCircle, Home, LineChart, TrendingUp } from "lucide-react";
-import { BarChart3, Calendar, CalendarDays, Clipboard, ClipboardClock, Clock, Cross, Handshake, Home, HomeIcon, LineChart, MedalIcon, Rabbit } from "lucide-react";
+import { BarChart3, Calendar, CalendarDays, Clipboard, ClipboardClock, Clock, Cross, FileText, Handshake, Home, HomeIcon, LineChart, MedalIcon, Rabbit } from "lucide-react";
 
 export const items = [
     {
@@ -9,7 +8,7 @@ export const items = [
     },
     {
       title: "Add New Cattle",
-      url: "/Add_new_cattle", 
+      url: "/Add_new_cattle",
       icon: Calendar,
     },
     {
@@ -17,7 +16,7 @@ export const items = [
       url: "/view_cattle_list",
       icon: BarChart3,
     },
-     {
+    {
       title: "Appointment Request",
       url: "/request_vet",
       icon: BarChart3,
@@ -28,57 +27,69 @@ export const items = [
       icon: Clock,
     },
     {
-      title: "Retirement Request ",
-      url: "/retirement_request",
+      title: "Retirement Request",
+      url: "/dashboard/retirement",
       icon: LineChart,
-    }
-
+    },
+    {
+      title: "Appointment History",
+      url: "/dashboard/history",
+      icon: Clock,
+    },
+    {
+      title: "My Prescriptions",
+      url: "/dashboard/prescriptions",
+      icon: FileText,
+    },
   ]
 
  export const vetMenu = [
     {
       title: "Appointment Management",
-      url: "/vet_dashboard",
+      url: "/vet-dashboard",
       icon: ClipboardClock,
     },
     {
       title: "Prescription / Health",
-      url: "/vet_dashboard/health",
+      url: "/vet-dashboard/health",
       icon: Cross,
     },
     {
       title: "Vaccination & Event",
-      url: "/vet_dashboard/events",
+      url: "/vet-dashboard/events",
       icon: CalendarDays,
     },
-
-
+    {
+      title: "Availability",
+      url: "/vet-dashboard/availability",
+      icon: Clock,
+    },
   ]
 
   export const shelterMenu=[
     {
       title: "Home",
-      url: "/shelter_dashboard",
+      url: "/shelter-dashboard",
       icon: HomeIcon,
     },
     {
       title: "Intake Requests",
-      url: "/shelter_dashboard/intake-requests",
+      url: "/shelter-dashboard/intake-requests",
       icon: Clipboard,
     },
     {
       title: "View Animals",
-      url: "/shelter_dashboard/animals",
+      url: "/shelter-dashboard/animals",
       icon: Rabbit,
     },
     {
       title: "Health Records",
-      url: "/shelter_dashboard/health-record",
+      url: "/shelter-dashboard/health-record",
       icon: MedalIcon,
     },
     {
-      title: "Adoptions ",
-      url: "/shelter_dashboard/adoption",
+      title: "Adoptions",
+      url: "/shelter-dashboard/adoption",
       icon: Handshake,
     },
   ]

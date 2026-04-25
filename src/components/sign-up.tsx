@@ -7,10 +7,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { SelectNative } from '../components/ui/select-native';
 import { useId, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Moon, Sun } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 
 export default function SignPage() {
   const id = useId();
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
   const [role, setRole] = useState("farmer");
   const [loading, setLoading] = useState(false);
@@ -315,9 +318,10 @@ export default function SignPage() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="sregistration" className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-              Registration Number *
+              Shelter ID / Registration
             </Label>
-            <Input type="text" required id="sregistration" name="sregistrationabc" autoComplete="off" className="h-11" placeholder="Official registration number" value={sregistration} onChange={(e) => setSregistration(e.target.value)} />
+            <Input type="text" id="sregistration" name="sregistrationabc" disabled className="h-11 bg-muted/50 text-muted-foreground cursor-not-allowed" placeholder="Auto-generated and sent via email after signup" value="" readOnly />
+            <p className="text-xs text-muted-foreground">Your unique Shelter ID will be emailed to you — use it to log in.</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="saddress" className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
@@ -337,7 +341,15 @@ export default function SignPage() {
   };
 
   return (
-    <section className="flex min-h-screen bg-gradient-to-br from-zinc-50 via-zinc-100 to-zinc-50 px-4 py-16 md:py-24 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+    <section className="flex min-h-screen bg-gradient-to-br from-zinc-50 via-zinc-100 to-zinc-50 px-4 py-16 md:py-24 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 relative">
+      {/* Theme toggle top-right */}
+      <button
+        onClick={toggleTheme}
+        className="fixed top-4 right-4 z-50 rounded-full p-2 bg-background/80 border border-border shadow hover:bg-muted transition-colors"
+        aria-label="Toggle theme"
+      >
+        {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+      </button>
       <form onSubmit={handleSubmit} autoComplete="off" className="bg-card m-auto h-fit w-full max-w-2xl rounded-2xl border shadow-2xl dark:[--color-muted:var(--color-zinc-900)] overflow-hidden">
         {/* Header Section */}
         <div className="bg-primary/80 p-8 text-primary-foreground">

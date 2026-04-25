@@ -6,7 +6,7 @@ import Signup from "./Page/Signup"
 import Login from "./Page/Login"
 import Forget from "./Page/Forget"
 import Contact from "./Page/Contact"
-import { ProtectedRoute, PublicOnlyRoute } from "./components/route-guards"
+import { ProtectedRoute, PublicOnlyRoute, RoleProtectedRoute, AuthRedirect } from "./components/route-guards"
 import Farmer_Dashboard from "./Page/Dashboard/Farmer_Dashboard"
 import Vet_Dashboard from "./Page/Dashboard/Vet_Dashboard"
 import Account_info from "./Page/Logics/Account_info"
@@ -32,7 +32,7 @@ const App = () => {
     <ErrorBoundary>
       <ScrollToTop />
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<AuthRedirect><Home /></AuthRedirect>} />
         <Route element={<PublicOnlyRoute />}>
           <Route path="/signup" element={<Signup />} />
           <Route path="/InaphPage" element={<InaphPage />} />
@@ -46,20 +46,40 @@ const App = () => {
       <Route path="/vet/create-password" element={<VetCreatePassword />} />
       <Route path="/shelter/login" element={<ShelterLogin />} />
         <Route path="/shelter/signup" element={<ShelterSignup />} />
+        
+        
 
         <Route element={<ProtectedRoute />}>
-        <Route path="/vet_dashboard" element={<Vet_Dashboard/>} />
-        <Route path="/vet_dashboard/:nested" element={<Vet_Dashboard/>} />
-        <Route path="/shelter_dashboard" element={<Shelter_Dashboard/>} />
-        <Route path="/shelter_dashboard/:nested" element={<Shelter_Dashboard/>} />
-          <Route path="/dashboard" element={<Farmer_Dashboard />} />
-          <Route path="/account-info" element={<Account_info />} />
-          <Route path="/add_new_cattle" element={<Add_new_cattle />} />
-          <Route path="/view_cattle_list" element={<View_cattle_list />} />
-          <Route path="/appointment_info" element={<Appointment_info />} />
-          <Route path="/request_vet" element={<Request_vet/>} />
-          <Route path="/ownership_transfer" element={<Ownership_transfer />} />
-          <Route path="/retirement_request" element={<Retirement_request />} />
+          <Route element={<RoleProtectedRoute allowedRoles={["farmer"]} />}>
+            {/* Farmer Dashboard — wildcard handles sub-pages like /dashboard/retirement, /dashboard/prescriptions etc. */}
+            <Route path="/dashboard" element={<Farmer_Dashboard />} />
+            <Route path="/dashboard/*" element={<Farmer_Dashboard />} />
+            <Route path="/account-info" element={<Account_info />} />
+            <Route path="/add_new_cattle" element={<Add_new_cattle />} />
+            <Route path="/view_cattle_list" element={<View_cattle_list />} />
+            <Route path="/appointment_info" element={<Appointment_info />} />
+            <Route path="/request_vet" element={<Request_vet/>} />
+            <Route path="/ownership_transfer" element={<Ownership_transfer />} />
+            <Route path="/retirement_request" element={<Retirement_request />} />
+          </Route>
+
+          <Route element={<RoleProtectedRoute allowedRoles={["vet"]} />}>
+            {/* Vet Dashboard — hyphen-based (preferred) and underscore (backward compat) */}
+            <Route path="/vet-dashboard" element={<Vet_Dashboard/>} />
+            <Route path="/vet-dashboard/:nested" element={<Vet_Dashboard/>} />
+            <Route path="/vet_dashboard" element={<Vet_Dashboard/>} />
+            <Route path="/vet_dashboard/:nested" element={<Vet_Dashboard/>} />
+          </Route>
+
+          <Route element={<RoleProtectedRoute allowedRoles={["shelter"]} />}>
+            {/* Shelter Dashboard — hyphen-based (preferred) and underscore (backward compat) */}
+            <Route path="/shelter-dashboard" element={<Shelter_Dashboard />} />
+            <Route path="/shelter-dashboard/*" element={<Shelter_Dashboard />} />
+            <Route path="/shelter_dashboard" element={<Shelter_Dashboard />} />
+            <Route path="/shelter_dashboard/*" element={<Shelter_Dashboard />} />
+            <Route path="/shelter/dashboard" element={<Shelter_Dashboard />} />
+            <Route path="/shelter/dashboard/*" element={<Shelter_Dashboard />} />
+          </Route>
         </Route>
       </Routes>
     </ErrorBoundary> 

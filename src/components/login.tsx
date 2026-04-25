@@ -6,6 +6,8 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { SelectNative } from "../components/ui/select-native";
 import { useState } from "react";
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "../hooks/useTheme";
 
 /**
  * LoginPage
@@ -18,6 +20,7 @@ import { useState } from "react";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
   const [role, setRole] = useState("farmer");
   const [loading, setLoading] = useState(false);
@@ -132,9 +135,15 @@ export default function LoginPage() {
         console.warn("Warning saving login info to localStorage:", saveErr);
       }
 
-      // Redirect to dashboard
-      navigate("/dashboard", { replace: true });
-      // slight delay to allow storing before reload (optional)
+      const finalRole = (data.role || role || "farmer").toString().toLowerCase();
+      // Redirect to appropriate dashboard based on role
+      if (finalRole === "vet") {
+        navigate("/vet-dashboard", { replace: true });
+      } else if (finalRole === "shelter") {
+        navigate("/shelter-dashboard", { replace: true });
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
     } catch (err) {
       console.error("Network/login error:", err);
       setError("Network error");
@@ -189,7 +198,15 @@ export default function LoginPage() {
   };
 
   return (
-    <section className="flex min-h-screen bg-gradient-to-br from-zinc-50 via-zinc-100 to-zinc-50 px-4 py-16 md:py-24 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+    <section className="flex min-h-screen bg-gradient-to-br from-zinc-50 via-zinc-100 to-zinc-50 px-4 py-16 md:py-24 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 relative">
+      {/* Theme toggle top-right */}
+      <button
+        onClick={toggleTheme}
+        className="fixed top-4 right-4 z-50 rounded-full p-2 bg-background/80 border border-border shadow hover:bg-muted transition-colors"
+        aria-label="Toggle theme"
+      >
+        {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+      </button>
       <form onSubmit={handleSubmit} autoComplete="off" className="bg-card m-auto h-fit w-full max-w-md rounded-2xl border shadow-2xl overflow-hidden">
         {/* Header Section */}
         <div className="bg-primary/80 p-8 text-primary-foreground">

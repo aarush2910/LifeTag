@@ -24,7 +24,7 @@ const menuItems = [
 const dashboardOptions = [
   { label: "Farmer Dashboard", value: "/dialog" },
   { label: "Vet Dashboard", value: "/vet/login" },
-  { label: "Shelter Dashboard", value: "/shelter_dashboard" },
+  { label: "Shelter Dashboard", value: "/shelter/login" },
 ];
 
 export const HeroHeader = () => {
@@ -231,7 +231,7 @@ export const HeroHeader = () => {
                         Vet
                       </Link>
                       <Link
-                        to="/shelter_dashboard"
+                        to="/shelter/login"
                         className="px-3 py-2 rounded hover:bg-primary/5 text-sm"
                         role="menuitem"
                       >
@@ -243,7 +243,7 @@ export const HeroHeader = () => {
 
                 {/* Sign Up */}
                 <Button asChild size="sm">
-                  <Link to="/dialog">
+                  <Link to="/signup">
                     <span>Sign Up</span>
                   </Link>
                 </Button>

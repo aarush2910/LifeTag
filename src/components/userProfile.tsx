@@ -12,9 +12,16 @@ import {
 import Spinner from "../components/ui/spinner";
 
 interface UserType {
-    user_name: string;
+    user_name?: string;
+    name?: string;    // vet stores 'name'
+    sname?: string;   // shelter stores 'sname'
     role: string;
 }
+
+function getDisplayName(user: UserType): string {
+    return user.user_name || user.name || user.sname || "User";
+}
+
 
 export default function UserProfileMenu() {
     const navigate = useNavigate();
@@ -32,22 +39,39 @@ export default function UserProfileMenu() {
 
     const handleLogout = () => {
         setIsLoggingOut(true);
-        localStorage.removeItem('user');
+        // Clear all auth data
+        ['user', 'access_token', 'token', 'role', 'user_id', 'farmerId',
+         'vet_id', 'shelter_id', 'identifier', 'faadhar', 'vemail', 'semail',
+         'inaph_id', 'user_name'].forEach(k => localStorage.removeItem(k));
         setTimeout(() => {
             navigate('/');
         }, 500);
+    };
+
+    const handleAccountInfo = () => {
+        const role = (user?.role || "").toLowerCase();
+        if (role === "farmer") navigate("/dashboard/account-info");
+        else if (role === "vet") navigate("/vet-dashboard/account-info");
+        else if (role === "shelter") navigate("/shelter-dashboard/account-info");
+    };
+
+    const handleSettings = () => {
+        const role = (user?.role || "").toLowerCase();
+        if (role === "farmer") navigate("/dashboard/settings");
+        else if (role === "vet") navigate("/vet-dashboard/settings");
+        else if (role === "shelter") navigate("/shelter-dashboard/settings");
     };
 
     const userMenuItems = [
         {
             title: "Account Info",
             icon: User,
-            onClick: () => navigate("/account-info")
+            onClick: handleAccountInfo
         },
         {
-            title: "Settings", 
+            title: "Settings",
             icon: Settings,
-            onClick: () => console.log("Settings clicked")
+            onClick: handleSettings
         },
         {
             title: "Logout",
@@ -67,7 +91,7 @@ export default function UserProfileMenu() {
                         {!isCollapsed && (
                             <div className="space-y-1">
                                 <p className="text-sm font-medium text-foreground truncate">
-                                    {user.user_name}
+                                    {getDisplayName(user)}
                                 </p>
                                 <p className="text-xs italic text-muted-foreground capitalize">
                                     {user.role}
@@ -75,12 +99,12 @@ export default function UserProfileMenu() {
                             </div>
                         )}
                         {isCollapsed && (
-                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
                                 <User className="h-4 w-4" />
                             </div>
                         )}
                     </div>
-                    
+
                     {/* User Menu Items */}
                     <SidebarMenu>
                         {userMenuItems.map((item) => (

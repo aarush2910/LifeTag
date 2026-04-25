@@ -97,7 +97,7 @@ export default function CattleViewList() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="flex flex-1 flex-col gap-4 p-6 pt-6 bg-gray-50 min-h-screen"
+            className="flex flex-1 flex-col gap-4 p-6 pt-6 bg-background min-h-screen"
           >
             <motion.div
               initial="hidden"
@@ -112,7 +112,7 @@ export default function CattleViewList() {
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <Card className="overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-gray-200 bg-white">
+                  <Card className="overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-border bg-card">
                     
                     {/* 🐮 Focused Upper-Half / Face Image */}
                     <div className="w-full h-48 overflow-hidden bg-gray-100">

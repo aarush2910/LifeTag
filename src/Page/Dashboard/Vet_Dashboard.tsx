@@ -5,8 +5,12 @@ import Events from "./Vet/Events";
 import { useNavigate, useParams } from "react-router-dom";
 import VetHome from "./Vet/VetHome";
 import Health from "./Vet/Health";
+import VetAccountInfo from "./Vet/VetAccountInfo";
+import VetSettings from "./Vet/VetSettings";
+import VetAvailability from "./Vet/VetAvailability";
 import { useEffect, useState } from "react";
-
+import NotificationBell from "../../components/NotificationBell";
+import UserMenu from "../../components/user-menu";
 
 
 export type UserType = {
@@ -24,24 +28,22 @@ export default function Vet_Dashboard() {
     useEffect(() => {
         const userData = localStorage.getItem('user');
         if (!userData) {
-            navigate('/login');
+            navigate('/vet/login');
         } else {
-            setUser(JSON.parse(userData));
+            const parsed = JSON.parse(userData);
+            if (parsed.role?.toLowerCase() !== "vet") {
+                navigate('/vet/login');
+            } else {
+                setUser(parsed);
+            }
         }
-    }, [navigate]);
+    }, []);
 
     if (!user) {
-        return <div>Loading...</div>;
+        return <div className="flex items-center justify-center min-h-screen text-lg font-medium text-muted-foreground">Loading...</div>;
     }
-  // const user = { user_name: "Uno", role: "Vet", user_id: "989832" };
-      //   role: "vet",
-      //   vet_id: data.vet_id ?? null,
-      //   license_no: licenseNo.trim(),
-      //   name: data.name ?? null,
-      //   token: data.access_token ?? null,
-      // };
-      console.log(user)
-    let ContentComponent: React.ComponentType;
+
+    let ContentComponent: React.ComponentType<any>;
 
     if (!nested) {
       ContentComponent = VetHome;
@@ -49,28 +51,32 @@ export default function Vet_Dashboard() {
       ContentComponent = Health;
     } else if (nested === "events") {
       ContentComponent = Events;
+    } else if (nested === "account-info") {
+      ContentComponent = VetAccountInfo;
+    } else if (nested === "settings") {
+      ContentComponent = VetSettings;
+    } else if (nested === "availability") {
+      ContentComponent = VetAvailability;
     } else {
-      ContentComponent = () => <div>Page not found</div>;
+      ContentComponent = () => <div className="p-8 text-muted-foreground">Page not found</div>;
     }
+
     return (
         <div className="w-full">
             <SidebarProvider>
                 <AppSidebar items={vetMenu}/>
                 <SidebarInset>
-                    <header className="flex px-4 h-16 shrink-0 items-center gap-2 border-b">
+                    <header className="flex px-2 md:px-4 h-16 shrink-0 items-center gap-2 border-b bg-background/80 backdrop-blur-md sticky top-0 z-10">
                         <SidebarTrigger className="-ml-1" />
-                        <div className="ml-auto pr-2 md:pr-0">
-                            <div className="text-right">
-                                <h2 className="text-lg font-semibold text-foreground">
-                                    Welcome, {user.name}!
-                                </h2>
-                                <p className="text-sm italic text-muted-foreground capitalize">
-                                    {user.role} Dashboard
-                                </p>
-                            </div>
+                        <div className="ml-3 hidden sm:flex flex-col leading-tight">
+                          <span className="text-xs text-muted-foreground">Welcome back,</span>
+                          <span className="text-sm font-semibold text-foreground">{user.name} 👋</span>
+                        </div>
+                        <div className="ml-auto flex items-center gap-2">
+                            <NotificationBell />
+                            <UserMenu />
                         </div>
                     </header>
-                
                      <main>
                         <ContentComponent/>
                      </main>

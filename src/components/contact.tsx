@@ -184,9 +184,9 @@ export default function CattleComplaintForm() {
                             </div>
                         </div>
                         <a
-                            href="tel:+911234567890"
+                            href="tel:+919760420000"
                             className="text-xl font-semibold text-primary hover:text-primary/80 transition-colors">
-                            +91 12345 67890
+                            +91 97604 2****
                         </a>
                     </div>
 
@@ -203,9 +203,9 @@ export default function CattleComplaintForm() {
                             </div>
                         </div>
                         <a
-                            href="mailto:support@lifetag.in"
+                            href="mailto:lifetag.support@gmail.com"
                             className="text-xl font-semibold text-primary hover:text-primary/80 transition-colors">
-                            support@lifetag.in
+                            lifetag.support@gmail.com
                         </a>
                     </div>
                 </div>
@@ -265,14 +265,17 @@ export default function CattleComplaintForm() {
 
                             <div className="grid md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <Label htmlFor="reporter_email" className="text-sm font-medium">Email (Optional)</Label>
+                                    <Label htmlFor="reporter_email" className="text-sm font-medium">Email Address *</Label>
                                     <Input
                                         type="email"
                                         id="reporter_email"
                                         className="h-11"
+                                        placeholder="you@example.com"
                                         value={formData.reporter_email}
                                         onChange={(e) => handleInputChange('reporter_email', e.target.value)}
+                                        required
                                     />
+                                    <p className="text-xs text-muted-foreground">A copy of this complaint will be sent to your email.</p>
                                 </div>
                                 
                                 <div className="space-y-2">

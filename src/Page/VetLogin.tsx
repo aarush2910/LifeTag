@@ -28,7 +28,7 @@ export default function VetLogin() {
       // 1) Check if vet has created a password already
       const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
       const checkRes = await fetch(
-        `${API_BASE}/api/vet/vet/check-license`, {
+        `${API_BASE}/api/vet/check-license`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ license: licenseNo.trim() }),
@@ -59,7 +59,7 @@ export default function VetLogin() {
         return;
       }
 
-      const res = await fetch(`${API_BASE}/api/vet/vet/login`, {
+      const res = await fetch(`${API_BASE}/api/vet/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ license: licenseNo.trim(), password }),

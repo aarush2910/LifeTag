@@ -1,8 +1,11 @@
 import React, { useState } from "react";
-import { Button } from "../../../components/ui/button";
-import { Input } from "../../../components/ui/input";
-import { Label } from "../../../components/ui/label";
-import { Card, CardContent, CardHeader } from "../../../components/ui/card";
+import { useSearchParams } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { SelectNative } from "@/components/ui/select-native";
+import Spinner from "@/components/ui/spinner";
 
 /**
  * Health.tsx
@@ -11,8 +14,57 @@ import { Card, CardContent, CardHeader } from "../../../components/ui/card";
  */
 
 export default function Health() {
-  const [inaphId, setInaphId] = useState("");
-  const [cattle, setCattle] = useState("");
+  const [searchParams] = useSearchParams();
+
+  // ── Resolve pre-fill: URL params (fresh accept) → sessionStorage (navigated back) ──
+  function resolveContext() {
+    const urlCode = searchParams.get("appointment_code") || "";
+    const urlInaph = searchParams.get("inaph_id") || "";
+    const urlCattle = searchParams.get("cattle_id") || "";
+
+    if (urlInaph || urlCattle) {
+      // Fresh accept flow — also refresh sessionStorage so it stays in sync
+      if (urlCode || urlInaph || urlCattle) {
+        sessionStorage.setItem(
+          "pendingHealthForm",
+          JSON.stringify({
+            appointment_code: urlCode,
+            inaph_id: urlInaph,
+            cattle_id: urlCattle,
+            expires_at: Date.now() + 8 * 3600 * 1000,
+          })
+        );
+      }
+      return { code: urlCode, inaph: urlInaph, cattle: urlCattle };
+    }
+
+    // Navigated away and came back — restore from sessionStorage
+    try {
+      const stored = sessionStorage.getItem("pendingHealthForm");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.expires_at && Date.now() < parsed.expires_at) {
+          return {
+            code: parsed.appointment_code || "",
+            inaph: parsed.inaph_id || "",
+            cattle: parsed.cattle_id || "",
+          };
+        }
+        // Expired — remove it
+        sessionStorage.removeItem("pendingHealthForm");
+      }
+    } catch { /* ignore */ }
+
+    return { code: "", inaph: "", cattle: "" };
+  }
+
+  const ctx = resolveContext();
+  const preAppointmentCode = ctx.code;
+  const preInaph = ctx.inaph;
+  const preCattleId = ctx.cattle;
+
+  const [inaphId, setInaphId] = useState(preInaph);
+  const [cattleId, setCattleId] = useState(preCattleId);
   const [diagnosis, setDiagnosis] = useState("");
   const [treatment, setTreatment] = useState("");
   const [medicines, setMedicines] = useState("");
@@ -20,11 +72,12 @@ export default function Health() {
   const [remarks, setRemarks] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [createdId, setCreatedId] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [savedRecord, setSavedRecord] = useState<any>(null);
 
   const validate = () => {
     if (!inaphId.trim()) return "INAPH ID is required.";
-    if (!cattle.trim()) return "Cattle ID is required.";
+    if (!cattleId.trim()) return "Cattle ID is required.";
     if (!diagnosis.trim()) return "Diagnosis is required.";
     if (!treatment.trim()) return "Treatment is required.";
     // optional: prevent follow-up date in the past
@@ -42,7 +95,8 @@ export default function Health() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    setCreatedId(null);
+    setSuccess(false);
+    setSavedRecord(null);
 
     const vErr = validate();
     if (vErr) {
@@ -61,7 +115,7 @@ export default function Health() {
       remarks?: string | null;
     } = {
       inaph_id: inaphId.trim(),
-      cattle_id: cattle.trim(),
+      cattle_id: cattleId.trim(),
       diagnosis: diagnosis.trim(),
       treatment: treatment.trim(),
       medicines: medicines.trim() || null,
@@ -71,35 +125,36 @@ export default function Health() {
 
     try {
       const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
-      const res = await fetch(`${API_BASE}/vet/health-record/vet-prescription`, {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const token = user.access_token || user.token || "";
+      const codeParam = preAppointmentCode ? `?appointment_code=${encodeURIComponent(preAppointmentCode)}` : "";
+      const res = await fetch(`${API_BASE}/api/vet/health-record/${codeParam}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Add Authorization header here if your API requires auth:
-          // "Authorization": `Bearer ${token}`
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(requestData),
       });
 
-      // If success (201), backend returns created VetHealthRecordResponse
-      if (res.status === 201) {
-        const data = await res.json();
-        // Expecting health_record_id in response
-        setCreatedId(data.health_record_id ?? null);
-        alert("✅ Health record saved successfully!");
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setError(data.detail || data.error || "Failed to create health record");
+      } else {
+        setSuccess(true);
+        setSavedRecord(data);
+        // Clear the pending context — record has been saved
+        sessionStorage.removeItem("pendingHealthForm");
         // reset
         setInaphId("");
-        setCattle("");
+        setCattleId("");
         setDiagnosis("");
         setTreatment("");
         setMedicines("");
         setFollowUpDate("");
         setRemarks("");
-      } else {
-        // parse error body if possible
-        const data = await res.json().catch(() => ({}));
-        const msg = data.detail || data.error || data.message || `HTTP ${res.status}`;
-        setError(msg);
+        setTimeout(() => setSuccess(false), 5000);
       }
     } catch (err: any) {
       console.error("Network error:", err);
@@ -108,6 +163,7 @@ export default function Health() {
       setLoading(false);
     }
   };
+
 
   return (
     <section className="flex min-h-screen bg-[var(--color-background)] px-4 py-16 md:py-24">
@@ -129,15 +185,15 @@ export default function Health() {
             </div>
           )}
 
-          {createdId && (
+          {success && savedRecord && (
             <div className="mb-6">
               <Card>
                 <CardHeader className="p-4">
-                  <h3 className="font-semibold">Record Created</h3>
+                  <h3 className="font-semibold">✅ Record Created</h3>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm">Health record created with ID:</p>
-                  <p className="mt-2 font-mono">{createdId}</p>
+                  <p className="mt-2 font-mono">{savedRecord.health_record_id}</p>
                 </CardContent>
               </Card>
             </div>
@@ -169,8 +225,8 @@ export default function Health() {
               type="text"
               className="w-full h-11 rounded-md border border-[var(--color-border)] bg-[var(--color-input)] text-[var(--color-foreground)]"
               placeholder="Enter cattle tag ID (e.g., TAG1001)"
-              value={cattle}
-              onChange={(e) => setCattle(e.target.value)}
+              value={cattleId}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCattleId(e.target.value)}
               required
             />
           </div>

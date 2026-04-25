@@ -9,8 +9,10 @@ import { AppSidebar } from "../../components/AppSidebar";
 import UserMenu from "../../components/user-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
 import { items } from "../../menudata/SidebarMenuItem";
 import { useNavigate } from "react-router-dom";
+import { Search, X } from "lucide-react";
 
 type VetCardAPI = {
   vid: string;
@@ -27,6 +29,7 @@ export default function VetListView() {
   const [vets, setVets] = useState<VetCardAPI[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
   const navigate = useNavigate();
 
   // pagination
@@ -64,9 +67,20 @@ export default function VetListView() {
     };
   }, []);
 
+  const filteredVets = useMemo(() => {
+    if (!search.trim()) return vets;
+    const q = search.toLowerCase();
+    return vets.filter(
+      (v) =>
+        (v.name || "").toLowerCase().includes(q) ||
+        (v.specialization || "").toLowerCase().includes(q) ||
+        (v.clinic || "").toLowerCase().includes(q)
+    );
+  }, [vets, search]);
+
   const totalPages = useMemo(() => {
-    return Math.max(1, Math.ceil(vets.length / PER_PAGE));
-  }, [vets.length]);
+    return Math.max(1, Math.ceil(filteredVets.length / PER_PAGE));
+  }, [filteredVets.length]);
 
   // clamp page if vets length changes
   useEffect(() => {
@@ -75,8 +89,8 @@ export default function VetListView() {
 
   const pagedVets = useMemo(() => {
     const start = (page - 1) * PER_PAGE;
-    return vets.slice(start, start + PER_PAGE);
-  }, [vets, page]);
+    return filteredVets.slice(start, start + PER_PAGE);
+  }, [filteredVets, page]);
 
   const cardVariant = {
     hidden: { opacity: 0, y: 30 },
@@ -164,7 +178,7 @@ export default function VetListView() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className="flex flex-1 flex-col gap-4 p-6 pt-6 bg-gray-50 min-h-screen"
+            className="flex flex-1 flex-col gap-4 p-6 pt-6 bg-background min-h-screen"
           >
             <div className="max-w-7xl w-full mx-auto">
               <div className="mb-4 flex items-center justify-between">
@@ -176,6 +190,32 @@ export default function VetListView() {
                     ? `Error: ${error}`
                     : `${vets.length} vets • page ${page} of ${totalPages}`}
                 </div>
+              </div>
+
+              {/* Search Bar */}
+              <div className="mb-6">
+                <div className="relative max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name, specialization, or clinic..."
+                    value={search}
+                    onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                    className="pl-9 pr-9 h-10"
+                  />
+                  {search && (
+                    <button
+                      onClick={() => { setSearch(""); setPage(1); }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                {search && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {filteredVets.length === 0 ? "No vets match your search" : `${filteredVets.length} vet${filteredVets.length !== 1 ? "s" : ""} found`}
+                  </p>
+                )}
               </div>
 
               {/* Grid */}
@@ -192,8 +232,12 @@ export default function VetListView() {
                   <div className="col-span-full text-center text-sm text-red-600">{error}</div>
                 )}
 
-                {!loading && !error && vets.length === 0 && (
-                  <div className="col-span-full text-center text-sm text-muted-foreground">No vets available.</div>
+                {!loading && !error && filteredVets.length === 0 && (
+                  <div className="col-span-full text-center py-16">
+                    <Search className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground">{search ? `No vets match "${search}"` : "No vets available."}</p>
+                    {search && <button onClick={() => setSearch("")} className="mt-2 text-sm text-primary hover:underline">Clear search</button>}
+                  </div>
                 )}
 
                 {pagedVets.map((v, i) => {
@@ -210,22 +254,21 @@ export default function VetListView() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.99 }}
                     >
-                      <Card className="overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-gray-200 bg-white">
-                        <div className="w-full h-36 flex items-center justify-center bg-gradient-to-br from-white to-gray-100">
-                          {/* simple placeholder avatar for vet */}
-                          <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-semibold text-primary-foreground">
+                      <Card className="overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-border bg-card">
+                  <div className="w-full h-36 flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                          <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center text-2xl font-bold text-primary">
                             {name?.slice(0, 1).toUpperCase() || "V"}
                           </div>
                         </div>
 
                         <CardHeader className="pt-4 pb-0">
-                          <CardTitle className="text-lg font-semibold text-gray-800">
+                          <CardTitle className="text-lg font-semibold text-foreground">
                             {name}
                           </CardTitle>
-                          <p className="text-sm text-gray-500">{specialization}</p>
+                          <p className="text-sm text-muted-foreground">{specialization}</p>
                         </CardHeader>
 
-                        <CardContent className="space-y-2 text-sm text-gray-600">
+                        <CardContent className="space-y-2 text-sm text-muted-foreground">
                           <p>
                             <span className="font-medium">Clinic:</span> {clinic}
                           </p>

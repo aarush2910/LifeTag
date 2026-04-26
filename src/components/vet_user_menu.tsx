@@ -29,7 +29,7 @@ export default function VetUSerMenu() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="h-auto p-0">
           <Avatar>
-            <AvatarImage src="/origin/avatar.jpg" alt="Profile image" />
+            <AvatarImage src="" alt="Profile image" />
             <AvatarFallback>U</AvatarFallback>
           </Avatar>
      

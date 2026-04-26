@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Spinner from "@/components/ui/spinner";
 import {
-  Building2, Phone, Mail, MapPin, ShieldCheck, Users,
+  Building2, Phone, MapPin, ShieldCheck, Users,
   Lock, Bell, ShieldAlert, Eye, EyeOff, Check, Save,
-  Hash, Calendar, TrendingUp,
+  TrendingUp,
 } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";

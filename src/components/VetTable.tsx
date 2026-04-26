@@ -684,7 +684,7 @@ function AppointmentModal({ type, data, onClose, onConfirm }: {
   );
 }
 
-function RowActions({ row, onDelete }: { row: Row<Appointment>; onRefresh?: () => void; onDelete?: (aid: string) => void }) {
+function RowActions({ row, onDelete, onRefresh }: { row: Row<Appointment>; onRefresh?: () => void; onDelete?: (aid: string) => void }) {
   const appointment = row.original;
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState<{ type: "view" | "error" | "confirm" | "clear"; data: any } | null>(null);
@@ -799,7 +799,7 @@ function RowActions({ row, onDelete }: { row: Row<Appointment>; onRefresh?: () =
             )}
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          {appointment.status !== "Completed" && appointment.status !== "Cancelled" && (
+          {appointment.status !== "Completed" && appointment.status !== "Accepted" && (
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
               onClick={() => setModal({ type: "confirm", data: appointment })}
@@ -807,7 +807,7 @@ function RowActions({ row, onDelete }: { row: Row<Appointment>; onRefresh?: () =
               Cancel Appointment
             </DropdownMenuItem>
           )}
-          {(appointment.status === "Approved" || appointment.status === "Completed" || appointment.status === "Cancelled") && (
+          {appointment.status === "Completed" && (
             <DropdownMenuItem
               className="text-orange-600 focus:text-orange-600"
               onClick={() => setModal({ type: "clear", data: appointment })}

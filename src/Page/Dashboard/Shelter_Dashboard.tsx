@@ -11,7 +11,6 @@ import AnimalRegistry from "../shelter/Animal";
 import HealthRecords from "../shelter/HealthRecord";
 import AdoptionProcessing from "../shelter/Adoption";
 import ShelterAccountInfo from "../shelter/ShelterAccountInfo";
-import ShelterSettings from "../shelter/ShelterSettings";
 
 const Shelter_Dashboard = () => {
   const navigate = useNavigate();

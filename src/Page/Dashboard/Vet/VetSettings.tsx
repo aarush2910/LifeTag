@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Spinner from "@/components/ui/spinner";
 import {
-  User, Phone, Mail, MapPin, Lock, Bell, ShieldAlert,
+  User, MapPin, Lock, Bell, ShieldAlert,
   Eye, EyeOff, Check, Save,
 } from "lucide-react";
 

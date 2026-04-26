@@ -337,21 +337,6 @@ function AddAppointmentFormInline() {
     setForm((prev) => ({ ...prev, time_slot: "" }));
   }, [form.vet_id, form.appointment_date]);
 
-  const validate = (): string | null => {
-    if (!form.symptoms || form.symptoms.trim() === "")
-      return "Please describe the symptoms.";
-    if (!form.appointment_date)
-      return "Please choose an appointment date.";
-    if (form.appointment_date && isPastDate(form.appointment_date))
-      return "Appointment date cannot be in the past.";
-    if (!form.time_slot || form.time_slot.trim() === "")
-      return "Please enter a time slot.";
-    if (!form.owner_id && !form.inaph_id)
-      return "Provide either Owner ID (logged-in) or Farmer INAPH ID.";
-    if (!form.cattle_tag_id && !form.cattle_id)
-      return "Please select a cattle (tag id or cattle id).";
-    return null;
-  };
 
   const validateStep = (step: number): string | null => {
     if (step === 0) {

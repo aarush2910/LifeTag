@@ -40,7 +40,7 @@ export default function SignPage() {
   const [sname, setSname] = useState("");
   const [semail, setSemail] = useState("");
   const [sphone, setSphone] = useState("");
-  const [sregistration, setSregistration] = useState("");
+  const [sregistration] = useState("");
   const [saddress, setSaddress] = useState("");
   const [scapacity, setScapacity] = useState("");
 

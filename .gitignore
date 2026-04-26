@@ -52,6 +52,14 @@ node_modules/
 *.swp
 *.swo
 
+# Debug / temp output files
+debug_*.py
+debug_*.txt
+*_out.txt
+*_out*.txt
+importerr.txt
+fi_out*.txt
+
 # Frontend build output
 /dist/
 alembic.ini

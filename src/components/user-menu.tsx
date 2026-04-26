@@ -63,7 +63,7 @@ export default function UserMenu() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="h-auto p-0 hover:bg-transparent">
           <Avatar>
-            <AvatarImage src="/origin/avatar.jpg" alt="Profile image" />
+            <AvatarImage src="" alt="Profile image" />
             <AvatarFallback>
               {displayName.charAt(0).toUpperCase()}
             </AvatarFallback>

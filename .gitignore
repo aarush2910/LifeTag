@@ -60,6 +60,11 @@ debug_*.txt
 importerr.txt
 fi_out*.txt
 
+# One-off test / migration scripts (not for production repo)
+test_*.py
+migrate.py
+run_migration.py
+
 # Frontend build output
 /dist/
 alembic.ini

@@ -73,23 +73,13 @@ async def add_process_time_header(request, call_next):
     return response
 
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-)
-
 # Chrome 94+ Private Network Access (PNA) policy:
 # When localhost/127.0.0.1 makes a fetch to another local port, Chrome sends
 # "Access-Control-Request-Private-Network: true" in the preflight. The server
 # must respond with "Access-Control-Allow-Private-Network: true" or the browser
 # blocks the request with a generic "Failed to fetch" error.
-# NOTE: Must intercept OPTIONS before call_next — CORSMiddleware returns early
-# for OPTIONS so the header was never being added to preflight responses.
+# NOTE: This middleware is registered BEFORE CORSMiddleware so that CORSMiddleware
+# (registered last) runs outermost and handles all preflight OPTIONS first.
 from starlette.responses import Response as _StarletteResponse
 
 @app.middleware("http")
@@ -113,6 +103,21 @@ async def private_network_access_middleware(request, call_next):
     response = await call_next(request)
     response.headers["Access-Control-Allow-Private-Network"] = "true"
     return response
+
+
+# ─── CORS Middleware ──────────────────────────────────────────────────────────
+# IMPORTANT: CORSMiddleware must be registered LAST so Starlette places it as
+# the outermost layer. This ensures ALL preflight OPTIONS requests are handled
+# (and Access-Control-Allow-Origin is added) before any inner middleware or
+# exception handler can return a response without CORS headers.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
 
 
 

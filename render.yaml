@@ -1,6 +1,7 @@
 services:
-  - type: static
+  - type: web
     name: lifetag-frontend
+    runtime: static
     rootDir: frontend
     buildCommand: npm run build
     staticPublishPath: dist

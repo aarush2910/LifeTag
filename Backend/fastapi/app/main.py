@@ -110,9 +110,19 @@ async def private_network_access_middleware(request, call_next):
 # the outermost layer. This ensures ALL preflight OPTIONS requests are handled
 # (and Access-Control-Allow-Origin is added) before any inner middleware or
 # exception handler can return a response without CORS headers.
+origins = list(settings.cors_origins_list)
+extra_origins = [
+    "https://lifetag-frontend.onrender.com",
+    "https://life-tag.vercel.app",
+    "http://lifetag-frontend-v2.s3-website.ap-south-1.amazonaws.com",
+]
+for origin in extra_origins:
+    if origin not in origins:
+        origins.append(origin)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -5,6 +5,9 @@ from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 
 
 raw_db_url = str(settings.DATABASE_URL)
+# Normalize postgres:// to postgresql:// as injected by Render
+if raw_db_url.startswith("postgres://"):
+    raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
 # Ensure asyncpg dialect is used when a plain postgresql:// URL is supplied
 if raw_db_url.startswith("postgresql://") and "+asyncpg" not in raw_db_url:
     raw_db_url = raw_db_url.replace("postgresql://", "postgresql+asyncpg://", 1)

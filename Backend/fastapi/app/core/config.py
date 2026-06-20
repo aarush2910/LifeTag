@@ -37,8 +37,8 @@ class Settings(BaseSettings):
     MAIL_USE_TLS: bool = False
 
    
-    FRONTEND_URL: str = "https://life-tag.vercel.app"
-    CORS_ORIGINS: str = "https://life-tag.vercel.app,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://127.0.0.1:5173,http://lifetag-frontend-v2.s3-website.ap-south-1.amazonaws.com"
+    FRONTEND_URL: str = "https://lifetag-frontend.onrender.com"
+    CORS_ORIGINS: str = "https://lifetag-frontend.onrender.com,https://life-tag.vercel.app,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://127.0.0.1:5173"
 
     
     UPLOAD_FOLDER: str = "uploads"

@@ -103,11 +103,17 @@ export default function CattleComplaintForm() {
             Object.keys(formData).forEach(key => {
                 let value = formData[key as keyof typeof formData]
                 
+                // Skip empty GPS fields — backend expects float | None, not ""
+                if ((key === 'gps_latitude' || key === 'gps_longitude') && !value) {
+                    return
+                }
+
                 // Convert datetime-local to ISO format for backend
                 if (key === 'spotted_date' && value) {
-                    // datetime-local format: "2025-10-19T16:14"
-                    // Convert to ISO: "2025-10-19T16:14:00"
-                    value = value + ':00'
+                    // datetime-local: "2025-10-19T16:14" → ISO: "2025-10-19T16:14:00"
+                    value = String(value).includes(':') && String(value).length === 16
+                        ? value + ':00'
+                        : value
                 }
                 
                 formDataToSend.append(key, String(value))
@@ -129,7 +135,7 @@ export default function CattleComplaintForm() {
             
             if (response.ok) {
                 const result = await response.json()
-                alert(` Complaint registered successfully!\nComplaint ID: ${result.complaint_id}`)
+                alert(`✅ Complaint registered successfully!\n\nComplaint ID: ${result.complaint_id}\n\n📧 A confirmation email has been sent to your email address.\nPlease check your inbox (and spam folder).`)
                 
                 // Reset form
                 setFormData({

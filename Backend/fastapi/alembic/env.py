@@ -39,6 +39,12 @@ env_db_url = (
 )
 
 if env_db_url:
+    # Normalize postgres:// to postgresql:// as injected by Render
+    if env_db_url.startswith("postgres://"):
+        env_db_url = env_db_url.replace("postgres://", "postgresql://", 1)
+    # Force asyncpg driver if no driver is specified, avoiding psycopg2 requirement
+    if env_db_url.startswith("postgresql://") and "+asyncpg" not in env_db_url:
+        env_db_url = env_db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
     config.set_main_option("sqlalchemy.url", env_db_url)
 else:
     cfg_url = config.get_main_option("sqlalchemy.url")

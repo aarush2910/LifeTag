@@ -10,14 +10,14 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
-    ALGORITHM:str
+    ALGORITHM: str = "HS256"
 
     
-    DB_USER: str
-    DB_PASSWORD: str
-    DB_HOST: str
-    DB_PORT: int
-    DB_NAME: str
+    DB_USER: str | None = None
+    DB_PASSWORD: str | None = None
+    DB_HOST: str | None = None
+    DB_PORT: int | None = None
+    DB_NAME: str | None = None
     DATABASE_URL: AnyUrl
 
     # Redis (Upstash) Settings
@@ -27,8 +27,8 @@ class Settings(BaseSettings):
     REDIS_MAX_CONNECTIONS: int = 5
 
     # Mail Settings
-    MAIL_SERVER: str
-    MAIL_PORT: int
+    MAIL_SERVER: str | None = None
+    MAIL_PORT: int | None = None
     MAIL_USERNAME: str | None = None
     MAIL_PASSWORD: str | None = None
     MAIL_FROM: str | None = None

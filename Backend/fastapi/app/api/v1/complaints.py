@@ -8,8 +8,20 @@ from app.tasks.email_tasks import schedule_cattle_complaint_email, schedule_admi
 from datetime import datetime
 import logging
 from app.core.redis_client import cache_get, cache_set, cache_delete_pattern
+from typing import Optional
 
 router = APIRouter(tags=["complaints"])
+
+
+def _parse_float_or_none(value: Optional[str]) -> Optional[float]:
+    """Convert form string to float, returning None for empty/missing values."""
+    if value is None or str(value).strip() == "":
+        return None
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return None
+
 
 @router.post("/cattle", status_code=201)
 async def create_cattle_complaint(
@@ -21,30 +33,33 @@ async def create_cattle_complaint(
     cattle_count: int = Form(...),
     cattle_type: str = Form(...),
     cattle_condition: str = Form(...),
-    description: str | None = Form(None),
-    spotted_date: str | None = Form(None),
+    description: Optional[str] = Form(None),
+    spotted_date: Optional[str] = Form(None),
     exact_location: str = Form(...),
-    gps_latitude: float | None = Form(None),
-    gps_longitude: float | None = Form(None),
-    nearest_landmark: str | None = Form(None),
-    photo: UploadFile | None = File(None),
+    gps_latitude: Optional[str] = Form(None),
+    gps_longitude: Optional[str] = Form(None),
+    nearest_landmark: Optional[str] = Form(None),
+    photo: Optional[UploadFile] = File(None),
     db: AsyncSession = Depends(get_db)
 ):
         # handle photo
         photo_path = None
-        if photo is not None:
+        if photo is not None and photo.filename:
                 if not allowed_file(photo.filename):
                         raise HTTPException(status_code=400, detail="Invalid file type")
                 photo_path = await save_upload_file(photo)
 
-        if spotted_date:
+        if spotted_date and spotted_date.strip():
                 try:
-                    
-                        spotted = datetime.fromisoformat(spotted_date.replace("Z", "+00:00"))
+                    spotted = datetime.fromisoformat(spotted_date.strip().replace("Z", "+00:00"))
                 except Exception:
-                        raise HTTPException(status_code=400, detail="Invalid spotted_date format")
+                        raise HTTPException(status_code=400, detail="Invalid spotted_date format. Use ISO 8601 (e.g. 2025-10-19T16:14:00)")
         else:
                 spotted = datetime.utcnow()
+
+        # Convert GPS strings → float | None safely
+        lat = _parse_float_or_none(gps_latitude)  # type: ignore[arg-type]
+        lon = _parse_float_or_none(gps_longitude)  # type: ignore[arg-type]
 
         new = CattleComplaint(
                 reporter_name=reporter_name,
@@ -54,13 +69,13 @@ async def create_cattle_complaint(
                 cattle_count=cattle_count,
                 cattle_type=cattle_type,
                 cattle_condition=cattle_condition,
-                description=description,
+                description=description or None,
                 photo_path=photo_path,
                 spotted_date=spotted,
                 exact_location=exact_location,
-                gps_latitude=gps_latitude,
-                gps_longitude=gps_longitude,
-                nearest_landmark=nearest_landmark
+                gps_latitude=lat,
+                gps_longitude=lon,
+                nearest_landmark=nearest_landmark or None,
         )
 
         

@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     MAIL_PORT: int
     MAIL_USERNAME: str | None = None
     MAIL_PASSWORD: str | None = None
-    MAIL_FROM: str | None = None          # Display From address (can differ from MAIL_USERNAME)
+    MAIL_FROM: str | None = None
     MAIL_FROM_NAME: str | None = "LifeTag Support"
     MAIL_USE_SSL: bool = True
     MAIL_USE_TLS: bool = False
@@ -46,7 +46,7 @@ class Settings(BaseSettings):
 
    
     model_config = SettingsConfigDict(
-        env_file="../.env",
+        env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore"
     )

@@ -199,6 +199,9 @@ async def startup_event():
             # vet_availability — drop old UNIQUE(vet_id) and add UNIQUE(vet_id, available_date)
             ("drop vet_id_key",         "ALTER TABLE vet_availability DROP CONSTRAINT IF EXISTS vet_availability_vet_id_key"),
             ("add uq_vet_day",          "ALTER TABLE vet_availability ADD CONSTRAINT uq_vet_availability_vet_day UNIQUE (vet_id, available_date)"),
+            # cattle_complaints — widen columns that were created too narrow in the original schema
+            ("cattle_complaints.reporter_phone type",   "ALTER TABLE cattle_complaints ALTER COLUMN reporter_phone TYPE VARCHAR(15)"),
+            ("cattle_complaints.complaint_status type", "ALTER TABLE cattle_complaints ALTER COLUMN complaint_status TYPE VARCHAR(20)"),
         ]
         for label, sql in column_migrations:
             try:
@@ -210,13 +213,10 @@ async def startup_event():
                 # Suppress errors that mean the migration is already applied:
                 # - "already exists" / "does not exist" → idempotent re-run
                 # - "InsufficientPrivilegeError" → column exists, DB user can't ALTER (harmless)
-                if (
-                    "already exists" in err_str
-                    or "does not exist" in err_str
-                    or "InsufficientPrivilegeError" in err_str
-                    or "insufficient_privilege" in err_str.lower()
-                ):
+                if "already exists" in err_str or "does not exist" in err_str:
                     print(f"  · migration skipped (already applied): {label}")
+                elif "InsufficientPrivilegeError" in err_str or "insufficient_privilege" in err_str.lower():
+                    print(f"  ⚠ migration skipped (DB user lacks ALTER privilege — run manually as owner): {label}")
                 else:
                     print(f"  ⚠ migration failed ({label}): {err_str[:120]}")
 
